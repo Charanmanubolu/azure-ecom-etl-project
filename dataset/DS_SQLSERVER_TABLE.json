@@ -1,0 +1,21 @@
+{
+	"name": "DS_SQLSERVER_TABLE",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_SQLSERVER_LOCAL",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"TableName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "@dataset().TableName"
+		}
+	}
+}
