@@ -23,9 +23,6 @@
 		"LS_ADLS_RAW_properties_typeProperties_url": {
 			"value": "https://stecraw001.dfs.core.windows.net/"
 		},
-		"LS_KEYVAULT_properties_typeProperties_baseUrl": {
-			"value": "https://kv-ecom-etl-dev.vault.azure.net/"
-		},
 		"LS_AzureSQLDB_properties_typeProperties_server": {
 			"value": "sql-srvr-ecom-dev.database.windows.net"
 		},
@@ -34,6 +31,9 @@
 		},
 		"LS_AzureSQLDB_properties_typeProperties_userName": {
 			"value": "sql-srvr-ecom-dev"
+		},
+		"LS_KEYVAULT_properties_typeProperties_baseUrl": {
+			"value": "https://kv-ecom-etl-dev.vault.azure.net/"
 		},
 		"LS_SQLSERVER_LOCAL_properties_typeProperties_server": {
 			"value": "DESKTOP-DEVAR3N"

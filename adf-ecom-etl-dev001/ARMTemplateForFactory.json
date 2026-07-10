@@ -31,10 +31,6 @@
 			"type": "string",
 			"defaultValue": "https://stecraw001.dfs.core.windows.net/"
 		},
-		"LS_KEYVAULT_properties_typeProperties_baseUrl": {
-			"type": "string",
-			"defaultValue": "https://kv-ecom-etl-dev.vault.azure.net/"
-		},
 		"LS_AzureSQLDB_properties_typeProperties_server": {
 			"type": "string",
 			"defaultValue": "sql-srvr-ecom-dev.database.windows.net"
@@ -46,6 +42,10 @@
 		"LS_AzureSQLDB_properties_typeProperties_userName": {
 			"type": "string",
 			"defaultValue": "sql-srvr-ecom-dev"
+		},
+		"LS_KEYVAULT_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://kv-ecom-etl-dev.vault.azure.net/"
 		},
 		"LS_SQLSERVER_LOCAL_properties_typeProperties_server": {
 			"type": "string",
@@ -64,6 +64,29 @@
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SQLserver_TABLE')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_SQLSERVER_LOCAL",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"TableName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "SqlServerTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_SQLSERVER_LOCAL')]"
+			]
+		},
 		{
 			"name": "[concat(parameters('factoryName'), '/LS_ADLS_BACKUP')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
@@ -116,29 +139,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/selfhostedIR')]",
-			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "SelfHosted",
-				"typeProperties": {}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/LS_KEYVAULT')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureKeyVault",
-				"typeProperties": {
-					"baseUrl": "[parameters('LS_KEYVAULT_properties_typeProperties_baseUrl')]"
-				}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/LS_AzureSQLDB')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -165,6 +165,19 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/LS_KEYVAULT')]"
 			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_KEYVAULT')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('LS_KEYVAULT_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/LS_SQLSERVER_LOCAL')]",
@@ -200,28 +213,14 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/DS_SQLserver_TABLE')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
+			"name": "[concat(parameters('factoryName'), '/selfhostedIR')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_SQLSERVER_LOCAL",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"TableName": {
-						"type": "string",
-						"defaultValue": "SELECT * FROM @{dataset().TableName}"
-					}
-				},
-				"annotations": [],
-				"type": "SqlServerTable",
-				"schema": [],
+				"type": "SelfHosted",
 				"typeProperties": {}
 			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_SQLSERVER_LOCAL')]"
-			]
+			"dependsOn": []
 		}
 	]
 }

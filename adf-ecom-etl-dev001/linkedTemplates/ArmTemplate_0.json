@@ -116,16 +116,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/selfhostedIR')]",
-			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "SelfHosted",
-				"typeProperties": {}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/LS_KEYVAULT')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -135,6 +125,16 @@
 				"typeProperties": {
 					"baseUrl": "[parameters('LS_KEYVAULT_properties_typeProperties_baseUrl')]"
 				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/selfhostedIR')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
 			},
 			"dependsOn": []
 		},
@@ -210,8 +210,7 @@
 				},
 				"parameters": {
 					"TableName": {
-						"type": "string",
-						"defaultValue": "SELECT * FROM @{dataset().TableName}"
+						"type": "string"
 					}
 				},
 				"annotations": [],
