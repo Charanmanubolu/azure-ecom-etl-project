@@ -7,8 +7,7 @@
 		},
 		"parameters": {
 			"TableName": {
-				"type": "string",
-				"defaultValue": "SELECT * FROM @{dataset().TableName}"
+				"type": "string"
 			}
 		},
 		"annotations": [],
