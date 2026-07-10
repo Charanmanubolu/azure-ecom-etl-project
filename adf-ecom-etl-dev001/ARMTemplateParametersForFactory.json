@@ -1,0 +1,48 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "adf-ecom-etl-dev001"
+		},
+		"LS_ADLS_BACKUP_accountKey": {
+			"value": ""
+		},
+		"LS_ADLS_CURATED_accountKey": {
+			"value": ""
+		},
+		"LS_ADLS_RAW_accountKey": {
+			"value": ""
+		},
+		"LS_ADLS_BACKUP_properties_typeProperties_url": {
+			"value": "https://stecbak001.dfs.core.windows.net/"
+		},
+		"LS_ADLS_CURATED_properties_typeProperties_url": {
+			"value": "https://steccur001.dfs.core.windows.net/"
+		},
+		"LS_ADLS_RAW_properties_typeProperties_url": {
+			"value": "https://stecraw001.dfs.core.windows.net/"
+		},
+		"LS_KEYVAULT_properties_typeProperties_baseUrl": {
+			"value": "https://kv-ecom-etl-dev.vault.azure.net/"
+		},
+		"LS_AzureSQLDB_properties_typeProperties_server": {
+			"value": "sql-srvr-ecom-dev.database.windows.net"
+		},
+		"LS_AzureSQLDB_properties_typeProperties_database": {
+			"value": "sqldb-ecom-dev"
+		},
+		"LS_AzureSQLDB_properties_typeProperties_userName": {
+			"value": "sql-srvr-ecom-dev"
+		},
+		"LS_SQLSERVER_LOCAL_properties_typeProperties_server": {
+			"value": "DESKTOP-DEVAR3N"
+		},
+		"LS_SQLSERVER_LOCAL_properties_typeProperties_database": {
+			"value": "ECommerceDB"
+		},
+		"LS_SQLSERVER_LOCAL_properties_typeProperties_userName": {
+			"value": "Charan_ADF"
+		}
+	}
+}

@@ -1,0 +1,203 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-ecom-etl-dev001"
+		},
+		"LS_ADLS_BACKUP_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'LS_ADLS_BACKUP'"
+		},
+		"LS_ADLS_CURATED_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'LS_ADLS_CURATED'"
+		},
+		"LS_ADLS_RAW_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'LS_ADLS_RAW'"
+		},
+		"LS_ADLS_BACKUP_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stecbak001.dfs.core.windows.net/"
+		},
+		"LS_ADLS_CURATED_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://steccur001.dfs.core.windows.net/"
+		},
+		"LS_ADLS_RAW_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stecraw001.dfs.core.windows.net/"
+		},
+		"LS_KEYVAULT_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://kv-ecom-etl-dev.vault.azure.net/"
+		},
+		"LS_AzureSQLDB_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "sql-srvr-ecom-dev.database.windows.net"
+		},
+		"LS_AzureSQLDB_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "sqldb-ecom-dev"
+		},
+		"LS_AzureSQLDB_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "sql-srvr-ecom-dev"
+		},
+		"LS_SQLSERVER_LOCAL_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "DESKTOP-DEVAR3N"
+		},
+		"LS_SQLSERVER_LOCAL_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "ECommerceDB"
+		},
+		"LS_SQLSERVER_LOCAL_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "Charan_ADF"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_ADLS_BACKUP')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('LS_ADLS_BACKUP_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('LS_ADLS_BACKUP_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_ADLS_CURATED')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('LS_ADLS_CURATED_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('LS_ADLS_CURATED_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_ADLS_RAW')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('LS_ADLS_RAW_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('LS_ADLS_RAW_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/selfhostedIR')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_KEYVAULT')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('LS_KEYVAULT_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_AzureSQLDB')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"server": "[parameters('LS_AzureSQLDB_properties_typeProperties_server')]",
+					"database": "[parameters('LS_AzureSQLDB_properties_typeProperties_database')]",
+					"encrypt": "mandatory",
+					"trustServerCertificate": false,
+					"authenticationType": "SQL",
+					"userName": "[parameters('LS_AzureSQLDB_properties_typeProperties_userName')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_KEYVAULT",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "AzureSqlDb"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_KEYVAULT')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_SQLSERVER_LOCAL')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"server": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_server')]",
+					"database": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_database')]",
+					"encrypt": "mandatory",
+					"trustServerCertificate": true,
+					"authenticationType": "SQL",
+					"userName": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_userName')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_KEYVAULT",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "Mysql-server"
+					}
+				},
+				"connectVia": {
+					"referenceName": "selfhostedIR",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/selfhostedIR')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_KEYVAULT')]"
+			]
+		}
+	]
+}

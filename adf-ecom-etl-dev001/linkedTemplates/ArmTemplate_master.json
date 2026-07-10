@@ -1,0 +1,133 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-ecom-etl-dev001"
+		},
+		"LS_ADLS_BACKUP_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'LS_ADLS_BACKUP'"
+		},
+		"LS_ADLS_CURATED_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'LS_ADLS_CURATED'"
+		},
+		"LS_ADLS_RAW_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'LS_ADLS_RAW'"
+		},
+		"LS_ADLS_BACKUP_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stecbak001.dfs.core.windows.net/"
+		},
+		"LS_ADLS_CURATED_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://steccur001.dfs.core.windows.net/"
+		},
+		"LS_ADLS_RAW_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stecraw001.dfs.core.windows.net/"
+		},
+		"LS_KEYVAULT_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://kv-ecom-etl-dev.vault.azure.net/"
+		},
+		"LS_AzureSQLDB_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "sql-srvr-ecom-dev.database.windows.net"
+		},
+		"LS_AzureSQLDB_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "sqldb-ecom-dev"
+		},
+		"LS_AzureSQLDB_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "sql-srvr-ecom-dev"
+		},
+		"LS_SQLSERVER_LOCAL_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "DESKTOP-DEVAR3N"
+		},
+		"LS_SQLSERVER_LOCAL_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "ECommerceDB"
+		},
+		"LS_SQLSERVER_LOCAL_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "Charan_ADF"
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "URI to storage account containing linked ARM templates"
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "Sas token to storage account containing linked ARM templates"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "adf-ecom-etl-dev001_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"LS_ADLS_BACKUP_accountKey": {
+						"value": "[parameters('LS_ADLS_BACKUP_accountKey')]"
+					},
+					"LS_ADLS_CURATED_accountKey": {
+						"value": "[parameters('LS_ADLS_CURATED_accountKey')]"
+					},
+					"LS_ADLS_RAW_accountKey": {
+						"value": "[parameters('LS_ADLS_RAW_accountKey')]"
+					},
+					"LS_ADLS_BACKUP_properties_typeProperties_url": {
+						"value": "[parameters('LS_ADLS_BACKUP_properties_typeProperties_url')]"
+					},
+					"LS_ADLS_CURATED_properties_typeProperties_url": {
+						"value": "[parameters('LS_ADLS_CURATED_properties_typeProperties_url')]"
+					},
+					"LS_ADLS_RAW_properties_typeProperties_url": {
+						"value": "[parameters('LS_ADLS_RAW_properties_typeProperties_url')]"
+					},
+					"LS_KEYVAULT_properties_typeProperties_baseUrl": {
+						"value": "[parameters('LS_KEYVAULT_properties_typeProperties_baseUrl')]"
+					},
+					"LS_AzureSQLDB_properties_typeProperties_server": {
+						"value": "[parameters('LS_AzureSQLDB_properties_typeProperties_server')]"
+					},
+					"LS_AzureSQLDB_properties_typeProperties_database": {
+						"value": "[parameters('LS_AzureSQLDB_properties_typeProperties_database')]"
+					},
+					"LS_AzureSQLDB_properties_typeProperties_userName": {
+						"value": "[parameters('LS_AzureSQLDB_properties_typeProperties_userName')]"
+					},
+					"LS_SQLSERVER_LOCAL_properties_typeProperties_server": {
+						"value": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_server')]"
+					},
+					"LS_SQLSERVER_LOCAL_properties_typeProperties_database": {
+						"value": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_database')]"
+					},
+					"LS_SQLSERVER_LOCAL_properties_typeProperties_userName": {
+						"value": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_userName')]"
+					}
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}
