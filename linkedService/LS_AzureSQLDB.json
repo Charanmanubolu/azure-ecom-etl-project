@@ -1,0 +1,23 @@
+{
+	"name": "LS_AzureSQLDB",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"server": "sql-srvr-ecom-dev.database.windows.net",
+			"database": "sqldb-ecom-dev",
+			"encrypt": "mandatory",
+			"trustServerCertificate": false,
+			"authenticationType": "SQL",
+			"userName": "sql-srvr-ecom-dev",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_KEYVAULT",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "AzureSqlDb"
+			}
+		}
+	}
+}
