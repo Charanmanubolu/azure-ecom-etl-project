@@ -198,6 +198,30 @@
 				"[concat(variables('factoryId'), '/integrationRuntimes/selfhostedIR')]",
 				"[concat(variables('factoryId'), '/linkedServices/LS_KEYVAULT')]"
 			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SQLserver_TABLE')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_SQLSERVER_LOCAL",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"TableName": {
+						"type": "string",
+						"defaultValue": "SELECT * FROM @{dataset().TableName}"
+					}
+				},
+				"annotations": [],
+				"type": "SqlServerTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_SQLSERVER_LOCAL')]"
+			]
 		}
 	]
 }
