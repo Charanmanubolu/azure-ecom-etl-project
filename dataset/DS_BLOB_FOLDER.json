@@ -1,28 +1,26 @@
 {
-	"name": "DS_CSV",
+	"name": "DS_BLOB_FOLDER",
 	"properties": {
 		"linkedServiceName": {
-			"referenceName": "LS_ADLS_RAW",
+			"referenceName": "LS_ADLS_INPUT",
 			"type": "LinkedServiceReference"
 		},
 		"parameters": {
-			"FileName": {
+			"FolderPath": {
 				"type": "string"
 			}
 		},
 		"annotations": [],
-		"type": "DelimitedText",
+		"type": "Binary",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"folderPath": "csv_files",
+				"folderPath": {
+					"value": "@dataset().FolderPath",
+					"type": "Expression"
+				},
 				"fileSystem": "input"
-			},
-			"columnDelimiter": ",",
-			"escapeChar": "\\",
-			"firstRowAsHeader": false,
-			"quoteChar": "\""
-		},
-		"schema": []
+			}
+		}
 	}
 }

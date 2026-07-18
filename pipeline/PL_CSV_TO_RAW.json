@@ -1,9 +1,9 @@
 {
-	"name": "PL_INGEST_FOLDER",
+	"name": "PL_CSV_TO_RAW",
 	"properties": {
 		"activities": [
 			{
-				"name": "Get Metadata1",
+				"name": "GM_List_CSV_Files",
 				"type": "GetMetadata",
 				"dependsOn": [],
 				"policy": {
@@ -16,8 +16,11 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "DS_CSV",
-						"type": "DatasetReference"
+						"referenceName": "DS_BLOB_FOLDER",
+						"type": "DatasetReference",
+						"parameters": {
+							"FolderPath": "csv_files"
+						}
 					},
 					"fieldList": [
 						"childItems"
@@ -28,8 +31,100 @@
 						"enablePartitionDiscovery": false
 					},
 					"formatSettings": {
-						"type": "DelimitedTextReadSettings"
+						"type": "BinaryReadSettings"
 					}
+				}
+			},
+			{
+				"name": "FE_Process_CSV_Files",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GM_List_CSV_Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GM_List_CSV_Files').output.childItems",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "CP_CSV_TO_RAW",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_CSV",
+									"type": "DatasetReference",
+									"parameters": {
+										"FileName": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_RAW_PARQUET",
+									"type": "DatasetReference",
+									"parameters": {
+										"EntityName": {
+											"value": "@replace(replace(item().name,'.csv',''),'_dataset','')",
+											"type": "Expression"
+										},
+										"YEAR": "@formatDateTime(utcNow(),'yyyy')",
+										"MONTH": "@formatDateTime(utcNow(),'MM')",
+										"DAY": "@formatDateTime(utcNow(),'dd')"
+									}
+								}
+							]
+						}
+					]
 				}
 			}
 		],
