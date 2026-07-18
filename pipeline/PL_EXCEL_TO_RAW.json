@@ -1,6 +1,138 @@
 {
 	"name": "PL_EXCEL_TO_RAW",
 	"properties": {
+		"activities": [
+			{
+				"name": "GM_List_Of_Files",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "DS_BLOB_FOLDER",
+						"type": "DatasetReference",
+						"parameters": {
+							"FolderPath": "excel_files"
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "BinaryReadSettings"
+					}
+				}
+			},
+			{
+				"name": "FE_Process_Excel_Files",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GM_List_Of_Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GM_List_Of_Files').output.childItems",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "CP_Excel_To_Raw",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "ExcelSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_EXCEL",
+									"type": "DatasetReference",
+									"parameters": {
+										"FileName": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_RAW_PARQUET",
+									"type": "DatasetReference",
+									"parameters": {
+										"EntityName": {
+											"value": "@replace(replace(item().name,'.xlsx' ,''),'_dataset','' )",
+											"type": "Expression"
+										},
+										"YEAR": {
+											"value": "@formatDateTime(utcNow(),'YYYY')",
+											"type": "Expression"
+										},
+										"MONTH": {
+											"value": "@formatDateTime(utcNow(),'MM')",
+											"type": "Expression"
+										},
+										"DAY": {
+											"value": "@formatDateTime(utcNow(),'DD')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
 		"annotations": []
 	}
 }

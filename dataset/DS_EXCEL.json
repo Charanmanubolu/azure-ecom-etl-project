@@ -5,13 +5,24 @@
 			"referenceName": "LS_ADLS_RAW",
 			"type": "LinkedServiceReference"
 		},
+		"parameters": {
+			"FileName": {
+				"type": "string"
+			}
+		},
 		"annotations": [],
 		"type": "Excel",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@dataset().FileName",
+					"type": "Expression"
+				},
+				"folderPath": "excel_files",
 				"fileSystem": "input"
-			}
+			},
+			"sheetIndex": 0
 		},
 		"schema": []
 	}
