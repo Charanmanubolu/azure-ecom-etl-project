@@ -1,0 +1,9 @@
+{
+	"name": "adf-ecom-etl-dev01",
+	"properties": {
+		"globalConfigurations": {
+			"PipelineBillingEnabled": "true"
+		}
+	},
+	"location": "centralindia"
+}
