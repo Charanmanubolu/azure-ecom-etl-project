@@ -4,19 +4,20 @@
 		"annotations": [],
 		"type": "AzureSqlDatabase",
 		"typeProperties": {
-			"server": "sql-srvr-ecom-dev.database.windows.net",
+			"server": "sql-srvr-ecom-dev01.database.windows.net",
 			"database": "sqldb-ecom-dev",
 			"encrypt": "mandatory",
-			"trustServerCertificate": false,
+			"trustServerCertificate": true,
 			"authenticationType": "SQL",
-			"userName": "sql-srvr-ecom-dev",
+			"userName": "sql-srvr-ecom-dev01",
 			"password": {
 				"type": "AzureKeyVaultSecret",
 				"store": {
 					"referenceName": "LS_KEYVAULT",
 					"type": "LinkedServiceReference"
 				},
-				"secretName": "AzureSqlDb"
+				"secretName": "AzureSqlDb",
+				"secretVersion": "3ad5812c2bc5492e9794bc09612676c3"
 			}
 		}
 	}
