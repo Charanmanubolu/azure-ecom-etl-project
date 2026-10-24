@@ -2,7 +2,11 @@
 	"name": "adf-ecom-etl-dev01",
 	"properties": {
 		"globalConfigurations": {
-			"PipelineBillingEnabled": "true"
+			"PipelineBillingEnabled": "false"
+		},
+		"trustModeClaimForMi": {
+			"value": "Enabled",
+			"editable": true
 		}
 	},
 	"location": "centralindia"
