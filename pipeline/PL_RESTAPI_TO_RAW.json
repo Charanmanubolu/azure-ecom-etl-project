@@ -1,6 +1,127 @@
 {
 	"name": "PL_RESTAPI_TO_RAW",
 	"properties": {
+		"activities": [
+			{
+				"name": "Initialize_Run_Date",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "vRunDate",
+					"value": {
+						"value": "@formatDateTime(utcNow(),'yyyy-MM-dd')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Validate_API",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Initialize_Run_Date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:02:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"disableCertValidation": false,
+					"httpRequestTimeout": "00:01:40",
+					"url": "https://retoolapi.dev/WL6Gkn/data"
+				}
+			},
+			{
+				"name": "Copy_RESTAPI_to_Raw",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Validate_API",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_REST_API",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_RAW_PARQUET",
+						"type": "DatasetReference",
+						"parameters": {
+							"EntityName": {
+								"value": "@pipeline().parameters.pEntityName",
+								"type": "Expression"
+							},
+							"YEAR": "@formatDateTime(utcNow(),'yyyy')",
+							"MONTH": {
+								"value": "@formatDateTime(utcNow(),'mm')",
+								"type": "Expression"
+							},
+							"DAY": {
+								"value": "@formatDateTime(utcNow(),'dd')",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"pEntityName": {
+				"type": "String",
+				"defaultValue": "retool_data"
+			}
+		},
+		"variables": {
+			"vRunDate": {
+				"type": "String"
+			}
+		},
 		"annotations": []
 	}
 }

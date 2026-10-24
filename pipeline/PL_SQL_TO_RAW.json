@@ -109,15 +109,15 @@
 											"type": "Expression"
 										},
 										"YEAR": {
-											"value": "@formatDateTime(utcNow(),'YYYY')",
+											"value": "@formatDateTime(utcNow(),'yyyy')",
 											"type": "Expression"
 										},
 										"MONTH": {
-											"value": "@formatDateTime(utcNow(),'MM')",
+											"value": "@formatDateTime(utcNow(),'mm')",
 											"type": "Expression"
 										},
 										"DAY": {
-											"value": "@formatDateTime(utcNow(),'DD')",
+											"value": "@formatDateTime(utcNow(),'dd')",
 											"type": "Expression"
 										}
 									}
