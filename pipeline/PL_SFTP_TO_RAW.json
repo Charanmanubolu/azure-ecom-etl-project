@@ -3,33 +3,9 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Initialize_Run_Date",
-				"type": "SetVariable",
-				"dependsOn": [],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "vRunDate",
-					"value": {
-						"value": "@formatDateTime(utcNow(),'yyyy-MM-dd')",
-						"type": "Expression"
-					}
-				}
-			},
-			{
 				"name": "Get_SFTP_Files",
 				"type": "GetMetadata",
-				"dependsOn": [
-					{
-						"activity": "Initialize_Run_Date",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 2,
@@ -37,17 +13,31 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
+					"dataset": {
+						"referenceName": "DS_BLOB_FOLDER",
+						"type": "DatasetReference",
+						"parameters": {
+							"FolderPath": {
+								"value": "@pipeline().parameters.pSourceFolder",
+								"type": "Expression"
+							}
+						}
+					},
 					"fieldList": [
 						"childItems"
 					],
 					"storeSettings": {
-						"type": "SftpReadSettings",
-						"recursive": true
+						"type": "AzureBlobFSReadSettings",
+						"recursive": false,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "BinaryReadSettings"
 					}
 				}
 			},
 			{
-				"name": "Filter_SFTP_CSV_Files",
+				"name": "Filter_Supported_Files",
 				"type": "Filter",
 				"dependsOn": [
 					{
@@ -64,17 +54,17 @@
 						"type": "Expression"
 					},
 					"condition": {
-						"value": "@and(equals(item().type,'File'),endsWith(toLower(item().name),'.csv'))",
+						"value": "@and(equals(item().type,'File'),or(endsWith(toLower(item().name),'.csv'),or(endsWith(toLower(item().name),'.json'),or(endsWith(toLower(item().name),'.xlsx'),endsWith(toLower(item().name),'.xls')))))",
 						"type": "Expression"
 					}
 				}
 			},
 			{
-				"name": "Check_SFTP_CSV_Files",
-				"type": "IfCondition",
+				"name": "ForEach_SFTP_File",
+				"type": "ForEach",
 				"dependsOn": [
 					{
-						"activity": "Filter_SFTP_CSV_Files",
+						"activity": "Filter_Supported_Files",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -82,110 +72,245 @@
 				],
 				"userProperties": [],
 				"typeProperties": {
-					"expression": {
-						"value": "@greater(length(activity('Filter_SFTP_CSV_Files').output.value),0)",
+					"items": {
+						"value": "@activity('Filter_Supported_Files').output.value",
 						"type": "Expression"
 					},
-					"ifFalseActivities": [
+					"isSequential": true,
+					"activities": [
 						{
-							"name": "Fail_No_SFTP_CSV",
-							"type": "Fail",
+							"name": "Route_By_File_Type",
+							"type": "Switch",
 							"dependsOn": [],
 							"userProperties": [],
 							"typeProperties": {
-								"message": "No CSV files were found in the configured SFTP source folder.",
-								"errorCode": "SFTP_NO_CSV"
-							}
-						}
-					],
-					"ifTrueActivities": [
-						{
-							"name": "Copy_SFTP_To_Raw",
-							"type": "Copy",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 2,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"source": {
-									"type": "DelimitedTextSource",
-									"storeSettings": {
-										"type": "SftpReadSettings",
-										"recursive": true,
-										"wildcardFileName": "*.csv"
-									},
-									"formatSettings": {
-										"type": "DelimitedTextReadSettings"
-									}
-								},
-								"sink": {
-									"type": "ParquetSink",
-									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings"
-									},
-									"formatSettings": {
-										"type": "ParquetWriteSettings"
-									}
-								},
-								"enableStaging": false
-							},
-							"outputs": [
-								{
-									"referenceName": "DS_RAW_PARQUET",
-									"type": "DatasetReference",
-									"parameters": {
-										"EntityName": {
-											"value": "@pipeline().parameters.pEntityName",
-											"type": "Expression"
-										},
-										"YEAR": {
-											"value": "@formatDateTime(utcNow(),'yyyy')",
-											"type": "Expression"
-										},
-										"MONTH": {
-											"value": "@formatDateTime(utcNow(),'MM')",
-											"type": "Expression"
-										},
-										"DAY": {
-											"value": "@formatDateTime(utcNow(),'dd')",
-											"type": "Expression"
-										}
-									}
-								}
-							]
-						},
-						{
-							"name": "Validate_SFTP_Output",
-							"type": "IfCondition",
-							"dependsOn": [
-								{
-									"activity": "Copy_SFTP_To_Raw",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"expression": {
-									"value": "@greater(activity('Copy_SFTP_To_Raw').output.rowsCopied,0)",
+								"on": {
+									"value": "@if(endsWith(toLower(item().name),'.csv'),'CSV',if(endsWith(toLower(item().name),'.json'),'JSON','EXCEL'))",
 									"type": "Expression"
 								},
-								"ifFalseActivities": [
+								"cases": [
 									{
-										"name": "Fail_Empty_SFTP_Output",
-										"type": "Fail",
-										"dependsOn": [],
-										"userProperties": [],
-										"typeProperties": {
-											"message": "SFTP copy completed without copying any rows.",
-											"errorCode": "SFTP_EMPTY_OUTPUT"
-										}
+										"value": "CSV",
+										"activities": [
+											{
+												"name": "Copy_CSV_To_Raw",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 2,
+													"retryIntervalInSeconds": 30
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "ParquetSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "ParquetWriteSettings"
+														}
+													},
+													"enableStaging": false
+												},
+												"inputs": [
+													{
+														"referenceName": "DS_CSV",
+														"type": "DatasetReference",
+														"parameters": {
+															"FileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "DS_RAW_PARQUET",
+														"type": "DatasetReference",
+														"parameters": {
+															"EntityName": {
+																"value": "@substring(item().name,0,lastIndexOf(item().name,'.'))",
+																"type": "Expression"
+															},
+															"YEAR": {
+																"value": "@formatDateTime(utcNow(),'yyyy')",
+																"type": "Expression"
+															},
+															"MONTH": {
+																"value": "@formatDateTime(utcNow(),'MM')",
+																"type": "Expression"
+															},
+															"DAY": {
+																"value": "@formatDateTime(utcNow(),'dd')",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											}
+										]
+									},
+									{
+										"value": "JSON",
+										"activities": [
+											{
+												"name": "Copy_JSON_To_Raw",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 2,
+													"retryIntervalInSeconds": 30
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "JsonSource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": false
+														},
+														"formatSettings": {
+															"type": "JsonReadSettings"
+														}
+													},
+													"sink": {
+														"type": "ParquetSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "ParquetWriteSettings"
+														}
+													},
+													"enableStaging": false
+												},
+												"inputs": [
+													{
+														"referenceName": "DS_Json",
+														"type": "DatasetReference",
+														"parameters": {
+															"FolderPath": {
+																"value": "@pipeline().parameters.pSourceFolder",
+																"type": "Expression"
+															},
+															"FileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "DS_RAW_PARQUET",
+														"type": "DatasetReference",
+														"parameters": {
+															"EntityName": {
+																"value": "@substring(item().name,0,lastIndexOf(item().name,'.'))",
+																"type": "Expression"
+															},
+															"YEAR": {
+																"value": "@formatDateTime(utcNow(),'yyyy')",
+																"type": "Expression"
+															},
+															"MONTH": {
+																"value": "@formatDateTime(utcNow(),'MM')",
+																"type": "Expression"
+															},
+															"DAY": {
+																"value": "@formatDateTime(utcNow(),'dd')",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											}
+										]
+									},
+									{
+										"value": "EXCEL",
+										"activities": [
+											{
+												"name": "Copy_EXCEL_To_Raw",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 2,
+													"retryIntervalInSeconds": 30
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "ExcelSource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": false
+														}
+													},
+													"sink": {
+														"type": "ParquetSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "ParquetWriteSettings"
+														}
+													},
+													"enableStaging": false
+												},
+												"inputs": [
+													{
+														"referenceName": "DS_EXCEL",
+														"type": "DatasetReference",
+														"parameters": {
+															"FileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "DS_RAW_PARQUET",
+														"type": "DatasetReference",
+														"parameters": {
+															"EntityName": {
+																"value": "@substring(item().name,0,lastIndexOf(item().name,'.'))",
+																"type": "Expression"
+															},
+															"YEAR": {
+																"value": "@formatDateTime(utcNow(),'yyyy')",
+																"type": "Expression"
+															},
+															"MONTH": {
+																"value": "@formatDateTime(utcNow(),'MM')",
+																"type": "Expression"
+															},
+															"DAY": {
+																"value": "@formatDateTime(utcNow(),'dd')",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											}
+										]
 									}
 								]
 							}
@@ -195,14 +320,9 @@
 			}
 		],
 		"parameters": {
-			"pEntityName": {
+			"pSourceFolder": {
 				"type": "String",
-				"defaultValue": "olist_customers_dataset"
-			}
-		},
-		"variables": {
-			"vRunDate": {
-				"type": "String"
+				"defaultValue": "SFTP_files"
 			}
 		},
 		"annotations": []
