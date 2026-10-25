@@ -3,33 +3,9 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Initialize_Run_Date",
-				"type": "SetVariable",
-				"dependsOn": [],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "vRunDate",
-					"value": {
-						"value": "@formatDateTime(utcNow(),'yyyy-MM-dd')",
-						"type": "Expression"
-					}
-				}
-			},
-			{
 				"name": "Get_Bulk_Files",
 				"type": "GetMetadata",
-				"dependsOn": [
-					{
-						"activity": "Initialize_Run_Date",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 2,
@@ -40,8 +16,11 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "DS_BULK_CSV",
-						"type": "DatasetReference"
+						"referenceName": "DS_BLOB_FOLDER",
+						"type": "DatasetReference",
+						"parameters": {
+							"FolderPath": "Bulk_files"
+						}
 					},
 					"fieldList": [
 						"childItems"
@@ -52,7 +31,7 @@
 						"enablePartitionDiscovery": false
 					},
 					"formatSettings": {
-						"type": "DelimitedTextReadSettings"
+						"type": "BinaryReadSettings"
 					}
 				}
 			},
@@ -80,8 +59,8 @@
 				}
 			},
 			{
-				"name": "Check_Bulk_CSV_Files",
-				"type": "IfCondition",
+				"name": "ForEach_Bulk_CSV",
+				"type": "ForEach",
 				"dependsOn": [
 					{
 						"activity": "Filter_Bulk_CSV_Files",
@@ -92,25 +71,14 @@
 				],
 				"userProperties": [],
 				"typeProperties": {
-					"expression": {
-						"value": "@greater(length(activity('Filter_Bulk_CSV_Files').output.value),0)",
+					"items": {
+						"value": "@activity('Filter_Bulk_CSV_Files').output.value",
 						"type": "Expression"
 					},
-					"ifFalseActivities": [
+					"isSequential": true,
+					"activities": [
 						{
-							"name": "Fail_No_Bulk_CSV",
-							"type": "Fail",
-							"dependsOn": [],
-							"userProperties": [],
-							"typeProperties": {
-								"message": "No CSV files were found in the configured bulk source folder.",
-								"errorCode": "BULK_NO_CSV"
-							}
-						}
-					],
-					"ifTrueActivities": [
-						{
-							"name": "Copy_Bulk_To_Raw",
+							"name": "Copy_Current_CSV_To_Raw",
 							"type": "Copy",
 							"dependsOn": [],
 							"policy": {
@@ -126,13 +94,11 @@
 									"type": "DelimitedTextSource",
 									"storeSettings": {
 										"type": "AzureBlobFSReadSettings",
-										"recursive": true,
-										"wildcardFileName": "*.csv",
+										"recursive": false,
 										"enablePartitionDiscovery": false
 									},
 									"formatSettings": {
-										"type": "DelimitedTextReadSettings",
-										"skipLineCount": 0
+										"type": "DelimitedTextReadSettings"
 									}
 								},
 								"sink": {
@@ -149,7 +115,10 @@
 							"inputs": [
 								{
 									"referenceName": "DS_BULK_CSV",
-									"type": "DatasetReference"
+									"type": "DatasetReference",
+									"parameters": {
+										"FileName": "@item().name"
+									}
 								}
 							],
 							"outputs": [
@@ -158,7 +127,7 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"EntityName": {
-											"value": "@pipeline().parameters.pEntityName",
+											"value": "@replace(toLower(item().name),'.csv','')",
 											"type": "Expression"
 										},
 										"YEAR": {
@@ -176,22 +145,67 @@
 									}
 								}
 							]
+						},
+						{
+							"name": "Validate_Current_CSV_Output",
+							"type": "GetMetadata",
+							"dependsOn": [
+								{
+									"activity": "Copy_Current_CSV_To_Raw",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "DS_RAW_PARQUET",
+									"type": "DatasetReference",
+									"parameters": {
+										"EntityName": {
+											"value": "@replace(toLower(item().name),'.csv','')",
+											"type": "Expression"
+										},
+										"YEAR": {
+											"value": "@formatDateTime(utcNow(),'yyyy')",
+											"type": "Expression"
+										},
+										"MONTH": {
+											"value": "@formatDateTime(utcNow(),'MM')",
+											"type": "Expression"
+										},
+										"DAY": {
+											"value": "@formatDateTime(utcNow(),'dd')",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"exists",
+									"size"
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "ParquetReadSettings"
+								}
+							}
 						}
 					]
 				}
 			}
 		],
-		"parameters": {
-			"pEntityName": {
-				"type": "String",
-				"defaultValue": "@dataset().FileName"
-			}
-		},
-		"variables": {
-			"vRunDate": {
-				"type": "String"
-			}
-		},
 		"annotations": []
 	}
 }
