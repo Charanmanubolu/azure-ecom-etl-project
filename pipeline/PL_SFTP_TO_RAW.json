@@ -132,7 +132,8 @@
 															"FileName": {
 																"value": "@item().name",
 																"type": "Expression"
-															}
+															},
+															"FolderPath": "@pipeline().parameters.pSourceFolder"
 														}
 													}
 												],
