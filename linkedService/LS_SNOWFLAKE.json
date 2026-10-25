@@ -1,0 +1,26 @@
+{
+	"name": "LS_SNOWFLAKE",
+	"properties": {
+		"annotations": [],
+		"type": "SnowflakeV2",
+		"typeProperties": {
+			"authenticationType": "Basic",
+			"accountIdentifier": "OSUVDIY-VU37943",
+			"user": "CharanManubolu",
+			"database": "DBAZURESNOW",
+			"warehouse": "ECOM_WH",
+			"role": "ACCOUNTADMIN",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_KEYVAULT",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "SnowFlake",
+				"secretVersion": "fdf080c9bf694c47bb9346ef0e0c240f"
+			},
+			"useUtcTimestamps": false
+		},
+		"version": "1.1"
+	}
+}
