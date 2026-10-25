@@ -1,6 +1,210 @@
 {
 	"name": "PL_SFTP_TO_RAW",
 	"properties": {
+		"activities": [
+			{
+				"name": "Initialize_Run_Date",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "vRunDate",
+					"value": {
+						"value": "@formatDateTime(utcNow(),'yyyy-MM-dd')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get_SFTP_Files",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "Initialize_Run_Date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "SftpReadSettings",
+						"recursive": true
+					}
+				}
+			},
+			{
+				"name": "Filter_SFTP_CSV_Files",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Get_SFTP_Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get_SFTP_Files').output.childItems",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@and(equals(item().type,'File'),endsWith(toLower(item().name),'.csv'))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Check_SFTP_CSV_Files",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Filter_SFTP_CSV_Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(length(activity('Filter_SFTP_CSV_Files').output.value),0)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Fail_No_SFTP_CSV",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": "No CSV files were found in the configured SFTP source folder.",
+								"errorCode": "SFTP_NO_CSV"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Copy_SFTP_To_Raw",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "SftpReadSettings",
+										"recursive": true,
+										"wildcardFileName": "*.csv"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"outputs": [
+								{
+									"referenceName": "DS_RAW_PARQUET",
+									"type": "DatasetReference",
+									"parameters": {
+										"EntityName": {
+											"value": "@pipeline().parameters.pEntityName",
+											"type": "Expression"
+										},
+										"YEAR": {
+											"value": "@formatDateTime(utcNow(),'yyyy')",
+											"type": "Expression"
+										},
+										"MONTH": {
+											"value": "@formatDateTime(utcNow(),'MM')",
+											"type": "Expression"
+										},
+										"DAY": {
+											"value": "@formatDateTime(utcNow(),'dd')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Validate_SFTP_Output",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Copy_SFTP_To_Raw",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@greater(activity('Copy_SFTP_To_Raw').output.rowsCopied,0)",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "Fail_Empty_SFTP_Output",
+										"type": "Fail",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"message": "SFTP copy completed without copying any rows.",
+											"errorCode": "SFTP_EMPTY_OUTPUT"
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"pEntityName": {
+				"type": "String",
+				"defaultValue": "olist_customers_dataset"
+			}
+		},
+		"variables": {
+			"vRunDate": {
+				"type": "String"
+			}
+		},
 		"annotations": []
 	}
 }
