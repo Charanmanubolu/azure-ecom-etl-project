@@ -213,12 +213,12 @@
 														"referenceName": "DS_Json",
 														"type": "DatasetReference",
 														"parameters": {
-															"FolderPath": {
-																"value": "@pipeline().parameters.pSourceFolder",
-																"type": "Expression"
-															},
 															"FileName": {
 																"value": "@item().name",
+																"type": "Expression"
+															},
+															"FolderPath": {
+																"value": "@pipeline().parameters.pSourceFolder",
 																"type": "Expression"
 															}
 														}

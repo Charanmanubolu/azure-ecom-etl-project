@@ -67,7 +67,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"ApiUrl": {
-								"value": "@activity('Validate_API').output",
+								"value": "@pipeline().parameters.pApiUrl",
 								"type": "Expression"
 							}
 						}

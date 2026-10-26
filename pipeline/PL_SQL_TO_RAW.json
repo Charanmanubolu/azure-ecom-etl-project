@@ -51,9 +51,51 @@
 					"isSequential": true,
 					"activities": [
 						{
+							"name": "LKUP_Source_Row_Count",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "@concat('SELECT COUNT_BIG(1) AS SourceRowCount FROM [', replace(item().SchemaName,']',']]'), '].[', replace(item().TableName,']',']]'), ']')",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "DS_SQLSERVER_TABLE",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@item().TableName",
+											"type": "Expression"
+										}
+									}
+								},
+								"firstRowOnly": true
+							}
+						},
+						{
 							"name": "CP_SQLSERVER_RAW",
 							"type": "Copy",
-							"dependsOn": [],
+							"dependsOn": [
+								{
+									"activity": "LKUP_Source_Row_Count",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
 							"policy": {
 								"timeout": "0.12:00:00",
 								"retry": 1,
@@ -129,11 +171,42 @@
 							]
 						},
 						{
+							"name": "IF_SQL_ROW_COUNTS_MATCH",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "CP_SQLSERVER_RAW",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(int(activity('CP_SQLSERVER_RAW').output.rowsCopied),int(activity('LKUP_Source_Row_Count').output.firstRow.SourceRowCount))",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "FAIL_SQL_ROW_COUNT_MISMATCH",
+										"type": "Fail",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"message": "SQL Server source row count does not match copied row count for the current table.",
+											"errorCode": "SQL_ROW_COUNT_MISMATCH"
+										}
+									}
+								]
+							}
+						},
+						{
 							"name": "Validate_SQL_Output",
 							"type": "GetMetadata",
 							"dependsOn": [
 								{
-									"activity": "CP_SQLSERVER_RAW",
+									"activity": "IF_SQL_ROW_COUNTS_MATCH",
 									"dependencyConditions": [
 										"Succeeded"
 									]
