@@ -346,11 +346,11 @@
 		"parameters": {
 			"SchemaName": {
 				"type": "string",
-				"defaultValue": "@pipeline().parameters.SchemaName"
+				"defaultValue": "AZURE_INTEGRATION"
 			},
 			"TableName": {
 				"type": "string",
-				"defaultValue": "@pipeline().parameters.TableName"
+				"defaultValue": "ORDER_ITEMS"
 			}
 		},
 		"annotations": []
