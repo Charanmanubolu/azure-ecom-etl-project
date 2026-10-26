@@ -8,7 +8,7 @@
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
-					"retry": 0,
+					"retry": 1,
 					"retryIntervalInSeconds": 30,
 					"secureOutput": false,
 					"secureInput": false
@@ -19,7 +19,10 @@
 						"referenceName": "DS_BLOB_FOLDER",
 						"type": "DatasetReference",
 						"parameters": {
-							"FolderPath": "excel_files"
+							"FolderPath": {
+								"value": "@pipeline().parameters.pSourceFolder",
+								"type": "Expression"
+							}
 						}
 					},
 					"fieldList": [
@@ -27,6 +30,7 @@
 					],
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
+						"recursive": false,
 						"enablePartitionDiscovery": false
 					},
 					"formatSettings": {
@@ -35,8 +39,8 @@
 				}
 			},
 			{
-				"name": "FE_Process_Excel_Files",
-				"type": "ForEach",
+				"name": "FL_Filter_Excel_Files",
+				"type": "Filter",
 				"dependsOn": [
 					{
 						"activity": "GM_List_Of_Files",
@@ -51,6 +55,30 @@
 						"value": "@activity('GM_List_Of_Files').output.childItems",
 						"type": "Expression"
 					},
+					"condition": {
+						"value": "@and(equals(item().type,'File'),or(endsWith(toLower(item().name),'.xlsx'),endsWith(toLower(item().name),'.xls')))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "FE_Process_Excel_Files",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "FL_Filter_Excel_Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('FL_Filter_Excel_Files').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
 					"activities": [
 						{
 							"name": "CP_Excel_To_Raw",
@@ -58,7 +86,7 @@
 							"dependsOn": [],
 							"policy": {
 								"timeout": "0.12:00:00",
-								"retry": 0,
+								"retry": 2,
 								"retryIntervalInSeconds": 30,
 								"secureOutput": false,
 								"secureInput": false
@@ -69,7 +97,7 @@
 									"type": "ExcelSource",
 									"storeSettings": {
 										"type": "AzureBlobFSReadSettings",
-										"recursive": true,
+										"recursive": false,
 										"enablePartitionDiscovery": false
 									}
 								},
@@ -110,11 +138,11 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"EntityName": {
-											"value": "@replace(replace(item().name,'.xlsx' ,''),'_dataset','' )",
+											"value": "@replace(replace(replace(toLower(item().name),'.xlsx',''),'.xls',''),'_dataset','')",
 											"type": "Expression"
 										},
 										"YEAR": {
-											"value": "@formatDateTime(utcNow(),'YYYY')",
+											"value": "@formatDateTime(utcNow(),'yyyy')",
 											"type": "Expression"
 										},
 										"MONTH": {
@@ -122,17 +150,54 @@
 											"type": "Expression"
 										},
 										"DAY": {
-											"value": "@formatDateTime(utcNow(),'DD')",
+											"value": "@formatDateTime(utcNow(),'dd')",
 											"type": "Expression"
 										}
 									}
 								}
 							]
+						},
+						{
+							"name": "IF_EXCEL_ROWS_COPIED",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "CP_Excel_To_Raw",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@greater(int(activity('CP_Excel_To_Raw').output.rowsCopied),0)",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "FAIL_EMPTY_EXCEL",
+										"type": "Fail",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"message": "Excel file produced zero rows.",
+											"errorCode": "EMPTY_EXCEL"
+										}
+									}
+								]
+							}
 						}
 					]
 				}
 			}
 		],
+		"parameters": {
+			"pSourceFolder": {
+				"type": "String",
+				"defaultValue": "excel_files"
+			}
+		},
 		"annotations": []
 	}
 }
