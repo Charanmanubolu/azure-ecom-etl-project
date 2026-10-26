@@ -9,7 +9,9 @@
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 2,
-					"retryIntervalInSeconds": 30
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
 				},
 				"userProperties": [],
 				"typeProperties": {
@@ -99,7 +101,9 @@
 												"policy": {
 													"timeout": "0.12:00:00",
 													"retry": 2,
-													"retryIntervalInSeconds": 30
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
 												},
 												"userProperties": [],
 												"typeProperties": {
@@ -133,7 +137,10 @@
 																"value": "@item().name",
 																"type": "Expression"
 															},
-															"FolderPath": "@pipeline().parameters.pSourceFolder"
+															"FolderPath": {
+																"value": "@pipeline().parameters.pSourceFolder",
+																"type": "Expression"
+															}
 														}
 													}
 												],
@@ -174,7 +181,9 @@
 												"policy": {
 													"timeout": "0.12:00:00",
 													"retry": 2,
-													"retryIntervalInSeconds": 30
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
 												},
 												"userProperties": [],
 												"typeProperties": {
@@ -252,7 +261,9 @@
 												"policy": {
 													"timeout": "0.12:00:00",
 													"retry": 2,
-													"retryIntervalInSeconds": 30
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
 												},
 												"userProperties": [],
 												"typeProperties": {
@@ -281,6 +292,10 @@
 														"parameters": {
 															"FileName": {
 																"value": "@item().name",
+																"type": "Expression"
+															},
+															"FolderPath": {
+																"value": "@pipeline().parameters.pSourceFolder",
 																"type": "Expression"
 															}
 														}
@@ -312,6 +327,18 @@
 												]
 											}
 										]
+									}
+								],
+								"defaultActivities": [
+									{
+										"name": "Fail_Unsupported_File_Type",
+										"type": "Fail",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"message": "Unsupported file type.",
+											"errorCode": "UNSUPPORTED_FILE_TYPE"
+										}
 									}
 								]
 							}
