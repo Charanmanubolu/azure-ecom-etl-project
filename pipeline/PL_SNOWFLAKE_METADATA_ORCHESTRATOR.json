@@ -1,97 +1,107 @@
 {
-	"name": "PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
-	"properties": {
-		"activities": [
-			{
-				"name": "LKUP_SNOWFLAKE_TABLES",
-				"type": "Lookup",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 1,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "SnowflakeV2Source",
-						"query": {
-							"value": "SELECT TABLE_SCHEMA AS SchemaName, TABLE_NAME AS TableName FROM \"DBAZURESNOW\".INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA <> 'INFORMATION_SCHEMA' ORDER BY TABLE_SCHEMA, TABLE_NAME",
-							"type": "Expression"
-						},
-						"exportSettings": {
-							"type": "SnowflakeExportCopyCommand"
-						},
-						"treatDecimalAsString": true
-					},
-					"dataset": {
-						"referenceName": "DS_SNOWFLAKE",
-						"type": "DatasetReference",
-						"parameters": {
-							"SchemaName": {
-								"value": "INFORMATION_SCHEMA",
-								"type": "Expression"
-							},
-							"TableName": {
-								"value": "TABLES",
-								"type": "Expression"
-							}
-						}
-					},
-					"firstRowOnly": false
-				}
-			},
-			{
-				"name": "FE_TABLES",
-				"type": "ForEach",
-				"dependsOn": [
-					{
-						"activity": "LKUP_SNOWFLAKE_TABLES",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"items": {
-						"value": "@activity('LKUP_SNOWFLAKE_TABLES').output.value",
-						"type": "Expression"
-					},
-					"isSequential": true,
-					"activities": [
-						{
-							"name": "EXEC_PL_SNOWFLAKE_TO_RAW",
-							"type": "ExecutePipeline",
-							"dependsOn": [],
-							"policy": {
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"pipeline": {
-									"referenceName": "PL_SNOWFLAKE_TO_RAW",
-									"type": "PipelineReference"
-								},
-								"waitOnCompletion": true,
-								"parameters": {
-									"SchemaName": {
-										"value": "@item().SchemaName",
-										"type": "Expression"
-									},
-									"TableName": {
-										"value": "@item().TableName",
-										"type": "Expression"
-									}
-								}
-							}
-						}
-					]
-				}
-			}
-		],
-		"annotations": []
-	}
+  "name": "PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
+  "properties": {
+    "activities": [
+      {
+        "name": "LKUP_SNOWFLAKE_TABLES",
+        "type": "Lookup",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "source": {
+            "type": "SnowflakeV2Source",
+            "query": {
+              "value": "@concat('SELECT TABLE_SCHEMA AS SchemaName, TABLE_NAME AS TableName FROM \"', pipeline().parameters.DatabaseName, '\".INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = ''BASE TABLE'' AND TABLE_SCHEMA <> ''INFORMATION_SCHEMA'' ORDER BY TABLE_SCHEMA, TABLE_NAME')",
+              "type": "Expression"
+            },
+            "exportSettings": {
+              "type": "SnowflakeExportCopyCommand"
+            },
+            "treatDecimalAsString": true
+          },
+          "dataset": {
+            "referenceName": "DS_SNOWFLAKE",
+            "type": "DatasetReference",
+            "parameters": {
+              "SchemaName": {
+                "value": "INFORMATION_SCHEMA",
+                "type": "Expression"
+              },
+              "TableName": {
+                "value": "TABLES",
+                "type": "Expression"
+              }
+            }
+          },
+          "firstRowOnly": false
+        }
+      },
+      {
+        "name": "FE_TABLES",
+        "type": "ForEach",
+        "dependsOn": [
+          {
+            "activity": "LKUP_SNOWFLAKE_TABLES",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "userProperties": [],
+        "typeProperties": {
+          "items": {
+            "value": "@activity('LKUP_SNOWFLAKE_TABLES').output.value",
+            "type": "Expression"
+          },
+          "isSequential": true,
+          "activities": [
+            {
+              "name": "EXEC_PL_SNOWFLAKE_TO_RAW",
+              "type": "ExecutePipeline",
+              "dependsOn": [],
+              "policy": {
+                "secureInput": false
+              },
+              "userProperties": [],
+              "typeProperties": {
+                "pipeline": {
+                  "referenceName": "PL_SNOWFLAKE_TO_RAW",
+                  "type": "PipelineReference"
+                },
+                "waitOnCompletion": true,
+                "parameters": {
+                  "SchemaName": {
+                    "value": "@item().SchemaName",
+                    "type": "Expression"
+                  },
+                  "TableName": {
+                    "value": "@item().TableName",
+                    "type": "Expression"
+                  },
+                  "DatabaseName": {
+                    "value": "@pipeline().parameters.DatabaseName",
+                    "type": "Expression"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "annotations": [],
+    "parameters": {
+      "DatabaseName": {
+        "type": "string",
+        "defaultValue": "DBAZURESNOW"
+      }
+    }
+  }
 }
