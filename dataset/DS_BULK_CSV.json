@@ -8,6 +8,9 @@
 		"parameters": {
 			"FileName": {
 				"type": "string"
+			},
+			"FolderPath": {
+				"type": "string"
 			}
 		},
 		"annotations": [],
@@ -15,8 +18,14 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileName": "@dataset().FileName",
-				"folderPath": "Bulk_files",
+				"fileName": {
+					"value": "@dataset().FileName",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().FolderPath",
+					"type": "Expression"
+				},
 				"fileSystem": "input"
 			},
 			"columnDelimiter": ",",

@@ -19,7 +19,10 @@
 						"referenceName": "DS_BLOB_FOLDER",
 						"type": "DatasetReference",
 						"parameters": {
-							"FolderPath": "Bulk_files"
+							"FolderPath": {
+								"value": "@pipeline().parameters.pSourceFolder",
+								"type": "Expression"
+							}
 						}
 					},
 					"fieldList": [
@@ -27,7 +30,7 @@
 					],
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
-						"recursive": true,
+						"recursive": false,
 						"enablePartitionDiscovery": false
 					},
 					"formatSettings": {
@@ -117,7 +120,14 @@
 									"referenceName": "DS_BULK_CSV",
 									"type": "DatasetReference",
 									"parameters": {
-										"FileName": "@item().name"
+										"FileName": {
+											"value": "@item().name",
+											"type": "Expression"
+										},
+										"FolderPath": {
+											"value": "@pipeline().parameters.pSourceFolder",
+											"type": "Expression"
+										}
 									}
 								}
 							],
@@ -194,18 +204,55 @@
 								],
 								"storeSettings": {
 									"type": "AzureBlobFSReadSettings",
-									"recursive": true,
+									"recursive": false,
 									"enablePartitionDiscovery": false
 								},
 								"formatSettings": {
 									"type": "ParquetReadSettings"
 								}
 							}
+						},
+						{
+							"name": "IF_Output_Exists",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Validate_Current_CSV_Output",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@and(equals(activity('Validate_Current_CSV_Output').output.exists,true),greater(int(activity('Validate_Current_CSV_Output').output.size),0))",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "Fail_Missing_Output",
+										"type": "Fail",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"message": "Bulk CSV output file is missing or empty.",
+											"errorCode": "BULK_OUTPUT_VALIDATION_FAILED"
+										}
+									}
+								]
+							}
 						}
 					]
 				}
 			}
 		],
+		"parameters": {
+			"pSourceFolder": {
+				"type": "String",
+				"defaultValue": "Bulk_files"
+			}
+		},
 		"annotations": []
 	}
 }
