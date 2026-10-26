@@ -31,11 +31,11 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"TableName": {
-								"value": "ORDER_ITEMS",
+								"value": "@pipeline().parameters.TableName",
 								"type": "Expression"
 							},
 							"SchemaName": {
-								"value": "AZURE_INTEGRATION",
+								"value": "@pipeline().parameters.SchemaName",
 								"type": "Expression"
 							}
 						}
@@ -346,11 +346,11 @@
 		"parameters": {
 			"SchemaName": {
 				"type": "string",
-				"defaultValue": "AZURE_INTEGRATION"
+				"defaultValue": "@pipeline().parameters.SchemaName"
 			},
 			"TableName": {
 				"type": "string",
-				"defaultValue": "ORDER_ITEMS"
+				"defaultValue": "@pipeline().parameters.TableName"
 			}
 		},
 		"annotations": []
