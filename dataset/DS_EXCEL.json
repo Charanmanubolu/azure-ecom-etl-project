@@ -8,6 +8,9 @@
 		"parameters": {
 			"FileName": {
 				"type": "string"
+			},
+			"FolderPath": {
+				"type": "string"
 			}
 		},
 		"annotations": [],
@@ -19,7 +22,10 @@
 					"value": "@dataset().FileName",
 					"type": "Expression"
 				},
-				"folderPath": "excel_files",
+				"folderPath": {
+					"value": "@dataset().FolderPath",
+					"type": "Expression"
+				},
 				"fileSystem": "input"
 			},
 			"sheetIndex": 0
