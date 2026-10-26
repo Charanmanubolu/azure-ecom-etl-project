@@ -5,6 +5,11 @@
 			"referenceName": "LS_REST_API",
 			"type": "LinkedServiceReference"
 		},
+		"parameters": {
+			"ApiUrl": {
+				"type": "string"
+			}
+		},
 		"annotations": [],
 		"type": "RestResource",
 		"schema": []
