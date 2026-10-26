@@ -1,352 +1,358 @@
 {
-  "name": "PL_SNOWFLAKE_TO_RAW",
-  "properties": {
-    "activities": [
-      {
-        "name": "LKUP_SOURCE_COUNT",
-        "type": "Lookup",
-        "dependsOn": [],
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 1,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": false
-        },
-        "userProperties": [],
-        "typeProperties": {
-          "source": {
-            "type": "SnowflakeV2Source",
-            "query": {
-              "value": "@concat(\n  'SELECT COUNT(*) AS ROWCOUNT FROM \"DBAZURESNOW\".\"',\n  pipeline().parameters.SchemaName,\n  '\".\"',\n  pipeline().parameters.TableName,\n  '\"'\n)",
-              "type": "Expression"
-            },
-            "treatDecimalAsString": true
-          },
-          "dataset": {
-            "referenceName": "DS_SNOWFLAKE",
-            "type": "DatasetReference",
-            "parameters": {
-              "TableName": {
-                "value": "@pipeline().parameters.TableName",
-                "type": "Expression"
-              },
-              "SchemaName": {
-                "value": "@pipeline().parameters.SchemaName",
-                "type": "Expression"
-              }
-            }
-          },
-          "firstRowOnly": true
-        }
-      },
-      {
-        "name": "IF_SOURCE_HAS_ROWS",
-        "type": "IfCondition",
-        "dependsOn": [
-          {
-            "activity": "LKUP_SOURCE_COUNT",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
-        "userProperties": [],
-        "typeProperties": {
-          "expression": {
-            "value": "@greater(int(activity('LKUP_SOURCE_COUNT').output.firstRow.RowCount), 0)",
-            "type": "Expression"
-          },
-          "ifFalseActivities": [
-            {
-              "name": "FAIL_EMPTY_SOURCE",
-              "type": "Fail",
-              "dependsOn": [],
-              "userProperties": [],
-              "typeProperties": {
-                "message": "Snowflake source table is empty. Pipeline stopped.",
-                "errorCode": "EMPTY_SOURCE"
-              }
-            }
-          ]
-        }
-      },
-      {
-        "name": "CP_SNOWFLAKE_TO_CSV",
-        "type": "Copy",
-        "dependsOn": [
-          {
-            "activity": "IF_SOURCE_HAS_ROWS",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 1,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": false
-        },
-        "userProperties": [],
-        "typeProperties": {
-          "source": {
-            "type": "SnowflakeV2Source",
-            "exportSettings": {
-              "type": "SnowflakeExportCopyCommand",
-              "storageIntegration": "ECOM_AZURE_BLOB_INT"
-            }
-          },
-          "sink": {
-            "type": "DelimitedTextSink",
-            "storeSettings": {
-              "type": "AzureBlobFSWriteSettings"
-            },
-            "formatSettings": {
-              "type": "DelimitedTextWriteSettings",
-              "quoteAllText": true,
-              "fileExtension": ".csv"
-            }
-          },
-          "enableStaging": true,
-          "stagingSettings": {
-            "linkedServiceName": {
-              "referenceName": "LS_BLOB",
-              "type": "LinkedServiceReference"
-            },
-            "path": "snowflake-staging"
-          }
-        },
-        "inputs": [
-          {
-            "referenceName": "DS_SNOWFLAKE",
-            "type": "DatasetReference",
-            "parameters": {
-              "SchemaName": {
-                "value": "@pipeline().parameters.SchemaName",
-                "type": "Expression"
-              },
-              "TableName": {
-                "value": "@pipeline().parameters.TableName",
-                "type": "Expression"
-              }
-            }
-          }
-        ],
-        "outputs": [
-          {
-            "referenceName": "DS_SNOWFLAKE_STAGING_CSV",
-            "type": "DatasetReference",
-            "parameters": {
-              "FileName": {
-                "value": "@concat(pipeline().parameters.TableName,'.csv')",
-                "type": "Expression"
-              },
-              "FolderPath": "staging/snowflake/{SchemaName}/{TableName}"
-            }
-          }
-        ]
-      },
-      {
-        "name": "IF_CSV_COUNT_MATCHES",
-        "type": "IfCondition",
-        "dependsOn": [
-          {
-            "activity": "CP_SNOWFLAKE_TO_CSV",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
-        "userProperties": [],
-        "typeProperties": {
-          "expression": {
-            "value": "@equals(int(activity('CP_SNOWFLAKE_TO_CSV').output.rowsCopied), int(activity('LKUP_SOURCE_COUNT').output.firstRow.RowCount))",
-            "type": "Expression"
-          },
-          "ifFalseActivities": [
-            {
-              "name": "FAIL_CSV_COUNT_MISMATCH",
-              "type": "Fail",
-              "dependsOn": [],
-              "userProperties": [],
-              "typeProperties": {
-                "message": "CSV copied row count does not match Snowflake source row count. Staging CSV retained.",
-                "errorCode": "CSV_COUNT_MISMATCH"
-              }
-            }
-          ]
-        }
-      },
-      {
-        "name": "CP_CSV_TO_PARQUET",
-        "type": "Copy",
-        "dependsOn": [
-          {
-            "activity": "IF_CSV_COUNT_MATCHES",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 1,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": false
-        },
-        "userProperties": [],
-        "typeProperties": {
-          "source": {
-            "type": "DelimitedTextSource",
-            "storeSettings": {
-              "type": "AzureBlobFSReadSettings",
-              "recursive": false,
-              "enablePartitionDiscovery": false
-            },
-            "formatSettings": {
-              "type": "DelimitedTextReadSettings"
-            }
-          },
-          "sink": {
-            "type": "ParquetSink",
-            "storeSettings": {
-              "type": "AzureBlobFSWriteSettings"
-            },
-            "formatSettings": {
-              "type": "ParquetWriteSettings"
-            }
-          },
-          "enableStaging": false,
-          "translator": {
-            "type": "TabularTranslator",
-            "typeConversion": true,
-            "typeConversionSettings": {
-              "allowDataTruncation": false,
-              "treatBooleanAsNumber": false
-            }
-          }
-        },
-        "inputs": [
-          {
-            "referenceName": "DS_SNOWFLAKE_STAGING_CSV",
-            "type": "DatasetReference",
-            "parameters": {
-              "FileName": {
-                "value": "@concat(pipeline().parameters.TableName,'.csv')",
-                "type": "Expression"
-              },
-              "FolderPath": "staging/snowflake"
-            }
-          }
-        ],
-        "outputs": [
-          {
-            "referenceName": "DS_RAW_PARQUET",
-            "type": "DatasetReference",
-            "parameters": {
-              "EntityName": {
-                "value": "@pipeline().parameters.TableName",
-                "type": "Expression"
-              },
-              "YEAR": {
-                "value": "@formatDateTime(utcNow(),'yyyy')",
-                "type": "Expression"
-              },
-              "MONTH": {
-                "value": "@formatDateTime(utcNow(),'MM')",
-                "type": "Expression"
-              },
-              "DAY": {
-                "value": "@formatDateTime(utcNow(),'dd')",
-                "type": "Expression"
-              }
-            }
-          }
-        ]
-      },
-      {
-        "name": "IF_PARQUET_COUNT_MATCHES",
-        "type": "IfCondition",
-        "dependsOn": [
-          {
-            "activity": "CP_CSV_TO_PARQUET",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
-        "userProperties": [],
-        "typeProperties": {
-          "expression": {
-            "value": "@and(greater(int(activity('CP_CSV_TO_PARQUET').output.rowsCopied),0),equals(int(activity('CP_CSV_TO_PARQUET').output.rowsCopied),int(activity('CP_SNOWFLAKE_TO_CSV').output.rowsCopied)))",
-            "type": "Expression"
-          },
-          "ifFalseActivities": [
-            {
-              "name": "FAIL_PARQUET_COUNT_MISMATCH",
-              "type": "Fail",
-              "dependsOn": [],
-              "userProperties": [],
-              "typeProperties": {
-                "message": "Parquet copied row count does not match CSV copied row count. Staging CSV retained.",
-                "errorCode": "PARQUET_COUNT_MISMATCH"
-              }
-            }
-          ]
-        }
-      },
-      {
-        "name": "DEL_STAGING_CSV",
-        "type": "Delete",
-        "dependsOn": [
-          {
-            "activity": "IF_PARQUET_COUNT_MATCHES",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
-        "policy": {
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": false
-        },
-        "userProperties": [],
-        "typeProperties": {
-          "dataset": {
-            "referenceName": "DS_SNOWFLAKE_STAGING_CSV",
-            "type": "DatasetReference",
-            "parameters": {
-              "FileName": {
-                "value": "@concat(pipeline().parameters.TableName,'.csv')",
-                "type": "Expression"
-              },
-              "FolderPath": "staging/snowflake"
-            }
-          },
-          "enableLogging": false,
-          "storeSettings": {
-            "type": "AzureBlobFSReadSettings",
-            "recursive": false,
-            "enablePartitionDiscovery": false
-          }
-        }
-      }
-    ],
-    "parameters": {
-      "SchemaName": {
-        "type": "string",
-        "defaultValue": "AZURE_INTEGRATION"
-      },
-      "TableName": {
-        "type": "string",
-        "defaultValue": "ORDER_ITEMS"
-      }
-    },
-    "annotations": []
-  }
+	"name": "PL_SNOWFLAKE_TO_RAW",
+	"properties": {
+		"activities": [
+			{
+				"name": "LKUP_SOURCE_COUNT",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeV2Source",
+						"query": {
+							"value": "@concat(\n  'SELECT COUNT(*) AS ROWCOUNT FROM \"DBAZURESNOW\".\"',\n  pipeline().parameters.SchemaName,\n  '\".\"',\n  pipeline().parameters.TableName,\n  '\"'\n)",
+							"type": "Expression"
+						},
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						},
+						"treatDecimalAsString": true
+					},
+					"dataset": {
+						"referenceName": "DS_SNOWFLAKE",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "ORDER_ITEMS",
+								"type": "Expression"
+							},
+							"SchemaName": {
+								"value": "AZURE_INTEGRATION",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "IF_SOURCE_HAS_ROWS",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "LKUP_SOURCE_COUNT",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(int(activity('LKUP_SOURCE_COUNT').output.firstRow.RowCount), 0)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "FAIL_EMPTY_SOURCE",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": "Snowflake source table is empty. Pipeline stopped.",
+								"errorCode": "EMPTY_SOURCE"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "CP_SNOWFLAKE_TO_CSV",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "IF_SOURCE_HAS_ROWS",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeV2Source",
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand",
+							"storageIntegration": "ECOM_AZURE_BLOB_INT"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".csv"
+						}
+					},
+					"enableStaging": true,
+					"stagingSettings": {
+						"linkedServiceName": {
+							"referenceName": "LS_BLOB",
+							"type": "LinkedServiceReference"
+						},
+						"path": "snowflake-staging"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_SNOWFLAKE",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "@pipeline().parameters.TableName",
+								"type": "Expression"
+							},
+							"SchemaName": {
+								"value": "@pipeline().parameters.SchemaName",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_SNOWFLAKE_STAGING_CSV",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileName": {
+								"value": "@concat(pipeline().parameters.TableName,'.csv')",
+								"type": "Expression"
+							},
+							"FolderPath": {
+								"value": "@concat(\n  'staging/snowflake/',\n  pipeline().parameters.SchemaName,\n  '/',\n  pipeline().parameters.TableName\n)",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "IF_CSV_COUNT_MATCHES",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "CP_SNOWFLAKE_TO_CSV",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(int(activity('CP_SNOWFLAKE_TO_CSV').output.rowsCopied), int(activity('LKUP_SOURCE_COUNT').output.firstRow.RowCount))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "FAIL_CSV_COUNT_MISMATCH",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": "CSV copied row count does not match Snowflake source row count. Staging CSV retained.",
+								"errorCode": "CSV_COUNT_MISMATCH"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "CP_CSV_TO_PARQUET",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "IF_CSV_COUNT_MATCHES",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": false,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": false,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_SNOWFLAKE_STAGING_CSV",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileName": {
+								"value": "@concat(pipeline().parameters.TableName,'.csv')",
+								"type": "Expression"
+							},
+							"FolderPath": "@concat(   'staging/snowflake/',   pipeline().parameters.SchemaName,   '/',   pipeline().parameters.TableName )"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_RAW_PARQUET",
+						"type": "DatasetReference",
+						"parameters": {
+							"EntityName": {
+								"value": "@pipeline().parameters.TableName",
+								"type": "Expression"
+							},
+							"YEAR": {
+								"value": "@formatDateTime(utcNow(),'yyyy')",
+								"type": "Expression"
+							},
+							"MONTH": {
+								"value": "@formatDateTime(utcNow(),'MM')",
+								"type": "Expression"
+							},
+							"DAY": {
+								"value": "@formatDateTime(utcNow(),'dd')",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "IF_PARQUET_COUNT_MATCHES",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "CP_CSV_TO_PARQUET",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(greater(int(activity('CP_CSV_TO_PARQUET').output.rowsCopied),0),equals(int(activity('CP_CSV_TO_PARQUET').output.rowsCopied),int(activity('CP_SNOWFLAKE_TO_CSV').output.rowsCopied)))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "FAIL_PARQUET_COUNT_MISMATCH",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": "Parquet copied row count does not match CSV copied row count. Staging CSV retained.",
+								"errorCode": "PARQUET_COUNT_MISMATCH"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "DEL_STAGING_CSV",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "IF_PARQUET_COUNT_MATCHES",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "DS_SNOWFLAKE_STAGING_CSV",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileName": {
+								"value": "@concat(pipeline().parameters.TableName,'.csv')",
+								"type": "Expression"
+							},
+							"FolderPath": "@concat(   'staging/snowflake/',   pipeline().parameters.SchemaName,   '/',   pipeline().parameters.TableName )"
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": false,
+						"enablePartitionDiscovery": false
+					}
+				}
+			}
+		],
+		"parameters": {
+			"SchemaName": {
+				"type": "string",
+				"defaultValue": "@pipeline().parameters.SchemaName"
+			},
+			"TableName": {
+				"type": "string",
+				"defaultValue": "@pipeline().parameters.TableName"
+			}
+		},
+		"annotations": []
+	}
 }
