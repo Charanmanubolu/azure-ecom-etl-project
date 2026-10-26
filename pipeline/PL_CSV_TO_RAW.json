@@ -104,6 +104,10 @@
 										"FileName": {
 											"value": "@item().name",
 											"type": "Expression"
+										},
+										"FolderPath": {
+											"value": "@item()",
+											"type": "Expression"
 										}
 									}
 								}
