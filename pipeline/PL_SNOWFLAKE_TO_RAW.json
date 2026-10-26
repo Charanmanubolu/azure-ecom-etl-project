@@ -244,7 +244,10 @@
 								"value": "@concat(pipeline().parameters.TableName,'.csv')",
 								"type": "Expression"
 							},
-							"FolderPath": "@concat(   'staging/snowflake/',   pipeline().parameters.SchemaName,   '/',   pipeline().parameters.TableName )"
+							"FolderPath": {
+								"value": "@concat(   'staging/snowflake/',   pipeline().parameters.SchemaName,   '/',   pipeline().parameters.TableName)",
+								"type": "Expression"
+							}
 						}
 					}
 				],
