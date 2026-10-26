@@ -8,7 +8,7 @@
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
-					"retry": 0,
+					"retry": 1,
 					"retryIntervalInSeconds": 30,
 					"secureOutput": false,
 					"secureInput": false
@@ -19,7 +19,10 @@
 						"referenceName": "DS_BLOB_FOLDER",
 						"type": "DatasetReference",
 						"parameters": {
-							"FolderPath": "csv_files"
+							"FolderPath": {
+								"value": "@pipeline().parameters.pSourceFolder",
+								"type": "Expression"
+							}
 						}
 					},
 					"fieldList": [
@@ -27,7 +30,7 @@
 					],
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
-						"recursive": true,
+						"recursive": false,
 						"enablePartitionDiscovery": false
 					},
 					"formatSettings": {
@@ -36,8 +39,8 @@
 				}
 			},
 			{
-				"name": "FE_Process_CSV_Files",
-				"type": "ForEach",
+				"name": "FL_Filter_CSV_Files",
+				"type": "Filter",
 				"dependsOn": [
 					{
 						"activity": "GM_List_CSV_Files",
@@ -52,6 +55,30 @@
 						"value": "@activity('GM_List_CSV_Files').output.childItems",
 						"type": "Expression"
 					},
+					"condition": {
+						"value": "@and(equals(item().type,'File'),endsWith(toLower(item().name),'.csv'))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "FE_Process_CSV_Files",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "FL_Filter_CSV_Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('FL_Filter_CSV_Files').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
 					"activities": [
 						{
 							"name": "CP_CSV_TO_RAW",
@@ -59,7 +86,7 @@
 							"dependsOn": [],
 							"policy": {
 								"timeout": "0.12:00:00",
-								"retry": 0,
+								"retry": 2,
 								"retryIntervalInSeconds": 30,
 								"secureOutput": false,
 								"secureInput": false
@@ -70,7 +97,7 @@
 									"type": "DelimitedTextSource",
 									"storeSettings": {
 										"type": "AzureBlobFSReadSettings",
-										"recursive": true,
+										"recursive": false,
 										"enablePartitionDiscovery": false
 									},
 									"formatSettings": {
@@ -106,7 +133,7 @@
 											"type": "Expression"
 										},
 										"FolderPath": {
-											"value": "@item()",
+											"value": "@pipeline().parameters.pSourceFolder",
 											"type": "Expression"
 										}
 									}
@@ -118,20 +145,66 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"EntityName": {
-											"value": "@replace(replace(item().name,'.csv',''),'_dataset','')",
+											"value": "@replace(toLower(item().name),'.csv','')",
 											"type": "Expression"
 										},
-										"YEAR": "@formatDateTime(utcNow(),'yyyy')",
-										"MONTH": "@formatDateTime(utcNow(),'MM')",
-										"DAY": "@formatDateTime(utcNow(),'dd')"
+										"YEAR": {
+											"value": "@formatDateTime(utcNow(),'yyyy')",
+											"type": "Expression"
+										},
+										"MONTH": {
+											"value": "@formatDateTime(utcNow(),'MM')",
+											"type": "Expression"
+										},
+										"DAY": {
+											"value": "@formatDateTime(utcNow(),'dd')",
+											"type": "Expression"
+										}
 									}
 								}
 							]
+						},
+						{
+							"name": "IF_CSV_ROWS_COPIED",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "CP_CSV_TO_RAW",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@greater(int(activity('CP_CSV_TO_RAW').output.rowsCopied),0)",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "FAIL_EMPTY_CSV",
+										"type": "Fail",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"message": "CSV file produced zero rows.",
+											"errorCode": "EMPTY_CSV"
+										}
+									}
+								]
+							}
 						}
 					]
 				}
 			}
 		],
+		"parameters": {
+			"pSourceFolder": {
+				"type": "String",
+				"defaultValue": "csv_files"
+			}
+		},
 		"annotations": []
 	}
 }
