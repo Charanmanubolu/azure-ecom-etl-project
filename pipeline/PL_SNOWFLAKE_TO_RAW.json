@@ -145,7 +145,10 @@
                 "value": "@concat(pipeline().parameters.TableName,'.csv')",
                 "type": "Expression"
               },
-              "FolderPath": "staging/snowflake"
+              "FolderPath": {
+                "value": "@concat('staging/snowflake/', pipeline().parameters.SchemaName, '/', pipeline().parameters.TableName)",
+                "type": "Expression"
+              }
             }
           }
         ]
@@ -240,7 +243,10 @@
                 "value": "@concat(pipeline().parameters.TableName,'.csv')",
                 "type": "Expression"
               },
-              "FolderPath": "staging/snowflake"
+              "FolderPath": {
+                "value": "@concat('staging/snowflake/', pipeline().parameters.SchemaName, '/', pipeline().parameters.TableName)",
+                "type": "Expression"
+              }
             }
           }
         ],
