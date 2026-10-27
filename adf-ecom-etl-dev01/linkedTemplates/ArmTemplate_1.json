@@ -1828,6 +1828,223 @@
 				"[concat(variables('factoryId'), '/datasets/DS_SNOWFLAKE')]",
 				"[concat(variables('factoryId'), '/pipelines/PL_SNOWFLAKE_TO_RAW')]"
 			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL1_Master')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Set_Trigger_Variable",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "Trigger_variable",
+							"value": {
+								"value": "@if(\n    equals(pipeline().parameters.Trigger, null),\n    pipeline().TriggerName,\n    pipeline().parameters.Trigger\n)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Execute_SQL_To_RAW",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Set_Trigger_Variable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PL_SQL_TO_RAW",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Execute_RESTAPI_To_RAW",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Execute_SQL_To_RAW",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PL_RESTAPI_TO_RAW",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Execute_CSV_To_RAW",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Execute_RESTAPI_To_RAW",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PL_CSV_TO_RAW",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Execute_EXCEL_To_RAW",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Execute_CSV_To_RAW",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PL_EXCEL_TO_RAW",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Execute_BULK_To_RAW",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Execute_EXCEL_To_RAW",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PL_BULK_TO_RAW",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Execute_SFTP_To_RAW",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Execute_BULK_To_RAW",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PL_SFTP_TO_RAW",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Execute_SNOWFLAKE_To_RAW",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Execute_SFTP_To_RAW",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"concurrency": 1,
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"Trigger": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"Trigger_variable": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/PL_SQL_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_RESTAPI_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_CSV_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_EXCEL_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_SFTP_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_SNOWFLAKE_METADATA_ORCHESTRATOR')]"
+			]
 		}
 	]
 }
