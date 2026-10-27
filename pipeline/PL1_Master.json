@@ -1,0 +1,194 @@
+{
+	"name": "PL1_Master",
+	"properties": {
+		"activities": [
+			{
+				"name": "Set_Trigger_Variable",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Trigger_variable",
+					"value": "@if(\n    equals(pipeline().parameters.Trigger, null),\n    pipeline().TriggerName,\n    pipeline().parameters.Trigger\n)"
+				}
+			},
+			{
+				"name": "Execute_SQL_To_RAW",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Set_Trigger_Variable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_SQL_TO_RAW",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Execute_RESTAPI_To_RAW",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Execute_SQL_To_RAW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_RESTAPI_TO_RAW",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Execute_CSV_To_RAW",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Execute_RESTAPI_To_RAW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_CSV_TO_RAW",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Execute_EXCEL_To_RAW",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Execute_CSV_To_RAW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_EXCEL_TO_RAW",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Execute_BULK_To_RAW",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Execute_EXCEL_To_RAW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_BULK_TO_RAW",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Execute_SFTP_To_RAW",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Execute_BULK_To_RAW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_SFTP_TO_RAW",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Execute_SNOWFLAKE_To_RAW",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Execute_SFTP_To_RAW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"concurrency": 1,
+		"parameters": {
+			"Trigger": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"Trigger_variable": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}
