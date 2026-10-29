@@ -128,6 +128,77 @@
             }
           ]
         }
+      },
+      {
+        "name": "SP_Update_RESTAPI_Snapshot",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [
+          {
+            "activity": "IF_ROWS_COPIED",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "userProperties": [],
+        "policy": {
+          "timeout": "0.00:05:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 15,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "storedProcedureName": "dbo.ecom_update_watermark",
+          "storedProcedureParameters": {
+            "source_type": {
+              "value": {
+                "value": "RESTAPI",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "source_name": {
+              "value": {
+                "value": "REST",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "schema_name": {
+              "value": {
+                "value": "api",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "table_name": {
+              "value": {
+                "value": "@toLower(pipeline().parameters.pEntityName)",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "watermark_column": {
+              "value": {
+                "value": "SNAPSHOT_LOAD_UTC",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "last_load_value": {
+              "value": {
+                "value": "@utcNow()",
+                "type": "Expression"
+              },
+              "type": "String"
+            }
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "LS_AzureSQLDB",
+          "type": "LinkedServiceReference"
+        }
       }
     ],
     "parameters": {
