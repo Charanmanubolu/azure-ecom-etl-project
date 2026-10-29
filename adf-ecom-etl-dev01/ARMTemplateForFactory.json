@@ -89,224 +89,6 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('factoryName'), '/PL1_Master')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Set_Trigger_Variable",
-						"type": "SetVariable",
-						"dependsOn": [],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "Trigger_variable",
-							"value": {
-								"value": "@if(\n    equals(pipeline().parameters.Trigger, null),\n    pipeline().TriggerName,\n    pipeline().parameters.Trigger\n)",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "Execute_SQL_To_RAW",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Set_Trigger_Variable",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "PL_SQL_TO_RAW",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "Execute_RESTAPI_To_RAW",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Execute_SQL_To_RAW",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "PL_RESTAPI_TO_RAW",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "Execute_CSV_To_RAW",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Execute_RESTAPI_To_RAW",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "PL_CSV_TO_RAW",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "Execute_EXCEL_To_RAW",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Execute_CSV_To_RAW",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "PL_EXCEL_TO_RAW",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "Execute_BULK_To_RAW",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Execute_EXCEL_To_RAW",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "PL_BULK_TO_RAW",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "Execute_SFTP_To_RAW",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Execute_BULK_To_RAW",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "PL_SFTP_TO_RAW",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "Execute_SNOWFLAKE_To_RAW",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Execute_SFTP_To_RAW",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					}
-				],
-				"concurrency": 1,
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"parameters": {
-					"Trigger": {
-						"type": "string"
-					}
-				},
-				"variables": {
-					"Trigger_variable": {
-						"type": "String"
-					}
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/PL_SQL_TO_RAW')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_RESTAPI_TO_RAW')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_CSV_TO_RAW')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_EXCEL_TO_RAW')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_BULK_TO_RAW')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_SFTP_TO_RAW')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_SNOWFLAKE_METADATA_ORCHESTRATOR')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/PL_BULK_TO_RAW')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -1008,6 +790,303 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_BLOB_FOLDER')]",
 				"[concat(variables('factoryId'), '/datasets/DS_EXCEL')]",
+				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_JSON_TO_RAW')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Metadata-driven folder and filename JSON ingestion to ADLS Gen2 RAW Parquet with file-size and row-count checks.",
+				"activities": [
+					{
+						"name": "Get_Source_Files",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.00:10:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_BLOB_FOLDER",
+								"type": "DatasetReference",
+								"parameters": {
+									"FolderPath": {
+										"value": "@pipeline().parameters.pSourceDirectory",
+										"type": "Expression"
+									}
+								}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": false,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "BinaryReadSettings"
+							}
+						}
+					},
+					{
+						"name": "Filter_JSON_Files",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "Get_Source_Files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get_Source_Files').output.childItems",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@and(equals(item().type,'File'),endsWith(toLower(item().name),'.json'))",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Check_No_JSON_Files",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Filter_JSON_Files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(length(activity('Filter_JSON_Files').output.value),0)",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "Fail_No_JSON_Files",
+									"type": "Fail",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"message": "No JSON files were found in the configured source folder.",
+										"errorCode": "NO_JSON_FILES"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "ForEach_JSON_File",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Filter_JSON_Files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Filter_JSON_Files').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Get_JSON_File_Metadata",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.00:10:00",
+										"retry": 1,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "DS_Json",
+											"type": "DatasetReference",
+											"parameters": {
+												"FolderPath": {
+													"value": "@pipeline().parameters.pSourceDirectory",
+													"type": "Expression"
+												},
+												"FileName": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										},
+										"fieldList": [
+											"exists",
+											"size"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "JsonReadSettings"
+										}
+									}
+								},
+								{
+									"name": "Check_JSON_File_Size",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "Get_JSON_File_Metadata",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@and(activity('Get_JSON_File_Metadata').output.exists,greater(activity('Get_JSON_File_Metadata').output.size,0))",
+											"type": "Expression"
+										},
+										"ifFalseActivities": [
+											{
+												"name": "Fail_Empty_JSON_File",
+												"type": "Fail",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('JSON file is empty or missing: ',item().name)",
+														"type": "Expression"
+													},
+													"errorCode": "EMPTY_JSON_FILE"
+												}
+											}
+										],
+										"ifTrueActivities": [
+											{
+												"name": "Copy_JSON_To_Parquet",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 2,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "JsonSource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": false,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "JsonReadSettings"
+														}
+													},
+													"sink": {
+														"type": "ParquetSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "ParquetWriteSettings"
+														}
+													},
+													"enableStaging": false
+												},
+												"inputs": [
+													{
+														"referenceName": "DS_Json",
+														"type": "DatasetReference",
+														"parameters": {
+															"FileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"FolderPath": {
+																"value": "@pipeline().parameters.pSourceDirectory",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "DS_RAW_PARQUET",
+														"type": "DatasetReference",
+														"parameters": {
+															"EntityName": {
+																"value": "@replace(toLower(item().name),'.json','')",
+																"type": "Expression"
+															},
+															"YEAR": {
+																"value": "@formatDateTime(utcNow(),'yyyy')",
+																"type": "Expression"
+															},
+															"MONTH": {
+																"value": "@formatDateTime(utcNow(),'MM')",
+																"type": "Expression"
+															},
+															"DAY": {
+																"value": "@formatDateTime(utcNow(),'dd')",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											}
+										]
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"pSourceDirectory": {
+						"type": "String",
+						"defaultValue": "json_files"
+					}
+				},
+				"annotations": [
+					"JSON ingestion",
+					"Dynamic filename",
+					"Dynamic date partition",
+					"File-size validation",
+					"Row-count validation",
+					"RAW Parquet"
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_BLOB_FOLDER')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Json')]",
 				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]"
 			]
 		},
@@ -3025,6 +3104,328 @@
 				"typeProperties": {}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL1_Master')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Metadata-driven orchestration for Azure E-commerce ETL source pipelines.",
+				"activities": [
+					{
+						"name": "LKUP_Master_Job_Metadata",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "EXEC dbo.ecom_get_master_job_metadata;",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_AzureSQLDB",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "FE_Process_Jobs",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "LKUP_Master_Job_Metadata",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('LKUP_Master_Job_Metadata').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "SW_Route_Source_Type",
+									"type": "Switch",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"on": {
+											"value": "@toUpper(item().SourceType)",
+											"type": "Expression"
+										},
+										"cases": [
+											{
+												"value": "SQL",
+												"activities": [
+													{
+														"name": "EXEC_PL_SQL_TO_RAW",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_SQL_TO_RAW",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {}
+														}
+													}
+												]
+											},
+											{
+												"value": "RESTAPI",
+												"activities": [
+													{
+														"name": "EXEC_PL_RESTAPI_TO_RAW",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_RESTAPI_TO_RAW",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"pApiUrl": {
+																	"value": "@concat(item().BaseURL,item().RelativeURL)",
+																	"type": "Expression"
+																},
+																"pEntityName": {
+																	"value": "@item().TargetEntity",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "CSV",
+												"activities": [
+													{
+														"name": "EXEC_PL_CSV_TO_RAW",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_CSV_TO_RAW",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"pSourceFolder": {
+																	"value": "@item().SourceDirectory",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "EXCEL",
+												"activities": [
+													{
+														"name": "EXEC_PL_EXCEL_TO_RAW",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_EXCEL_TO_RAW",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"pSourceFolder": {
+																	"value": "@item().SourceDirectory",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "BULK",
+												"activities": [
+													{
+														"name": "EXEC_PL_BULK_TO_RAW",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_BULK_TO_RAW",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"pSourceFolder": {
+																	"value": "@item().SourceDirectory",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "SFTP",
+												"activities": [
+													{
+														"name": "EXEC_PL_SFTP_TO_RAW",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_SFTP_TO_RAW",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"pSourceFolder": {
+																	"value": "@item().SourceDirectory",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "JSON",
+												"activities": [
+													{
+														"name": "EXEC_PL_JSON_TO_RAW",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_JSON_TO_RAW",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"pSourceDirectory": {
+																	"value": "@item().SourceDirectory",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "SNOWFLAKE",
+												"activities": [
+													{
+														"name": "EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"DatabaseName": {
+																	"value": "@if(empty(item().SourceDatabase),'DBAZURESNOW',item().SourceDatabase)",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											}
+										],
+										"defaultActivities": [
+											{
+												"name": "FAIL_Unsupported_Source_Type",
+												"type": "Fail",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('Unsupported or missing SourceType for jobid: ',string(item().jobid))",
+														"type": "Expression"
+													},
+													"errorCode": "UNSUPPORTED_SOURCE_TYPE"
+												}
+											}
+										]
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [
+					"Metadata-driven orchestration",
+					"Source-type routing",
+					"Sequential job execution"
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_AzureSQLDB')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_SQL_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_RESTAPI_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_CSV_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_EXCEL_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_BULK_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_SFTP_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_JSON_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_SNOWFLAKE_METADATA_ORCHESTRATOR')]"
+			]
 		}
 	]
 }
