@@ -440,6 +440,26 @@
                 "referenceName": "LS_AzureSQLDB",
                 "type": "LinkedServiceReference"
               }
+            },
+            {
+              "name": "FAIL_Child_Job",
+              "type": "Fail",
+              "dependsOn": [
+                {
+                  "activity": "SP_End_Job_Log_Failure",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "userProperties": [],
+              "typeProperties": {
+                "message": {
+                  "value": "@concat('Child pipeline failed for jobid: ',string(item().jobid),'. Check dbo.ecom_tbl_log_dtls for details.')",
+                  "type": "Expression"
+                },
+                "errorCode": "CHILD_PIPELINE_FAILED"
+              }
             }
           ],
           "batchCount": 3
