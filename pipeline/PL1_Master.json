@@ -118,7 +118,17 @@
                             "referenceName": "PL_SQL_TO_RAW",
                             "type": "PipelineReference"
                           },
-                          "waitOnCompletion": true
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "pBatchStartDate": {
+                              "value": "@pipeline().parameters.pBatchStartDate",
+                              "type": "Expression"
+                            },
+                            "pBatchEndDate": {
+                              "value": "@pipeline().parameters.pBatchEndDate",
+                              "type": "Expression"
+                            }
+                          }
                         }
                       }
                     ]
@@ -439,6 +449,16 @@
       "Metadata-driven orchestration",
       "Source-type routing",
       "Sequential job execution"
-    ]
+    ],
+    "parameters": {
+      "pBatchStartDate": {
+        "type": "string",
+        "defaultValue": "2016-01-01"
+      },
+      "pBatchEndDate": {
+        "type": "string",
+        "defaultValue": "2017-01-01"
+      }
+    }
   }
 }
