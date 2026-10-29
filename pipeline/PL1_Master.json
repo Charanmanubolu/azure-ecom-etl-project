@@ -1,30 +1,40 @@
 {
 	"name": "PL1_Master",
 	"properties": {
+		"description": "Metadata-driven orchestration for Azure E-commerce ETL source pipelines.",
 		"activities": [
 			{
-				"name": "Set_Trigger_Variable",
-				"type": "SetVariable",
+				"name": "LKUP_Master_Job_Metadata",
+				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
 					"secureOutput": false,
 					"secureInput": false
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"variableName": "Trigger_variable",
-					"value": {
-						"value": "@if(equals(pipeline().parameters.Trigger, null), pipeline().TriggerName, pipeline().parameters.Trigger)\n",
-						"type": "Expression"
-					}
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "EXEC dbo.ecom_get_master_job_metadata;",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_AzureSQLDB",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
 				}
 			},
 			{
-				"name": "Switch_Source",
-				"type": "Switch",
+				"name": "FE_Process_Jobs",
+				"type": "ForEach",
 				"dependsOn": [
 					{
-						"activity": "Set_Trigger_Variable",
+						"activity": "LKUP_Master_Job_Metadata",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -32,203 +42,263 @@
 				],
 				"userProperties": [],
 				"typeProperties": {
-					"on": {
-						"value": "@toUpper(variables('Trigger_variable'))",
+					"items": {
+						"value": "@activity('LKUP_Master_Job_Metadata').output.value",
 						"type": "Expression"
 					},
-					"cases": [
+					"isSequential": true,
+					"activities": [
 						{
-							"value": "SQL",
-							"activities": [
-								{
-									"name": "Execute_SQL_To_RAW",
-									"type": "ExecutePipeline",
-									"dependsOn": [],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "PL_SQL_TO_RAW",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true
-									}
-								}
-							]
-						},
-						{
-							"value": "RESTAPI",
-							"activities": [
-								{
-									"name": "Execute_RESTAPI_To_RAW",
-									"type": "ExecutePipeline",
-									"dependsOn": [],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "PL_RESTAPI_TO_RAW",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"pEntityName": "retool_data",
-											"pApiUrl": "https://retoolapi.dev/WL6Gkn/data"
-										}
-									}
-								}
-							]
-						},
-						{
-							"value": "CSV",
-							"activities": [
-								{
-									"name": "Execute_CSV_To_RAW",
-									"type": "ExecutePipeline",
-									"dependsOn": [],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "PL_CSV_TO_RAW",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"pSourceFolder": "csv_files"
-										}
-									}
-								}
-							]
-						},
-						{
-							"value": "EXCEL",
-							"activities": [
-								{
-									"name": "Execute_EXCEL_To_RAW",
-									"type": "ExecutePipeline",
-									"dependsOn": [],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "PL_EXCEL_TO_RAW",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"pSourceFolder": "excel_files"
-										}
-									}
-								}
-							]
-						},
-						{
-							"value": "BULK",
-							"activities": [
-								{
-									"name": "Execute_BULK_To_RAW",
-									"type": "ExecutePipeline",
-									"dependsOn": [],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "PL_BULK_TO_RAW",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"pSourceFolder": "Bulk_files"
-										}
-									}
-								}
-							]
-						},
-						{
-							"value": "SFTP",
-							"activities": [
-								{
-									"name": "Execute_SFTP_To_RAW",
-									"type": "ExecutePipeline",
-									"dependsOn": [],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "PL_SFTP_TO_RAW",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"pSourceFolder": "SFTP_files"
-										}
-									}
-								}
-							]
-						},
-						{
-							"value": "SNOWFLAKE",
-							"activities": [
-								{
-									"name": "Execute_SNOWFLAKE_Metadata",
-									"type": "ExecutePipeline",
-									"dependsOn": [],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"DatabaseName": "DBAZURESNOW"
-										}
-									}
-								}
-							]
-						}
-					],
-					"defaultActivities": [
-						{
-							"name": "Fail_Unsupported_Trigger",
-							"type": "Fail",
+							"name": "SW_Route_Source_Type",
+							"type": "Switch",
 							"dependsOn": [],
 							"userProperties": [],
 							"typeProperties": {
-								"message": "Unsupported Trigger value. Use SQL, RESTAPI, CSV, EXCEL, BULK, SFTP, or SNOWFLAKE.",
-								"errorCode": "UNSUPPORTED_TRIGGER"
+								"on": {
+									"value": "@toUpper(item().SourceType)",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "SQL",
+										"activities": [
+											{
+												"name": "EXEC_PL_SQL_TO_RAW",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PL_SQL_TO_RAW",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true
+												}
+											}
+										]
+									},
+									{
+										"value": "RESTAPI",
+										"activities": [
+											{
+												"name": "EXEC_PL_RESTAPI_TO_RAW",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PL_RESTAPI_TO_RAW",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pApiUrl": {
+															"value": "@concat(item().BaseURL,item().RelativeURL)",
+															"type": "Expression"
+														},
+														"pEntityName": {
+															"value": "@item().TargetEntity",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "CSV",
+										"activities": [
+											{
+												"name": "EXEC_PL_CSV_TO_RAW",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PL_CSV_TO_RAW",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pSourceFolder": {
+															"value": "@item().SourceDirectory",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "EXCEL",
+										"activities": [
+											{
+												"name": "EXEC_PL_EXCEL_TO_RAW",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PL_EXCEL_TO_RAW",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pSourceFolder": {
+															"value": "@item().SourceDirectory",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "BULK",
+										"activities": [
+											{
+												"name": "EXEC_PL_BULK_TO_RAW",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PL_BULK_TO_RAW",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pSourceFolder": {
+															"value": "@item().SourceDirectory",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "SFTP",
+										"activities": [
+											{
+												"name": "EXEC_PL_SFTP_TO_RAW",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PL_SFTP_TO_RAW",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pSourceFolder": {
+															"value": "@item().SourceDirectory",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "JSON",
+										"activities": [
+											{
+												"name": "EXEC_PL_JSON_TO_RAW",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PL_JSON_TO_RAW",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pSourceDirectory": {
+															"value": "@item().SourceDirectory",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "SNOWFLAKE",
+										"activities": [
+											{
+												"name": "EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"DatabaseName": {
+															"value": "@if(empty(item().SourceDatabase),'DBAZURESNOW',item().SourceDatabase)",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									}
+								],
+								"defaultActivities": [
+									{
+										"name": "FAIL_Unsupported_Source_Type",
+										"type": "Fail",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"message": {
+												"value": "@concat('Unsupported or missing SourceType for jobid: ',string(item().jobid))",
+												"type": "Expression"
+											},
+											"errorCode": "UNSUPPORTED_SOURCE_TYPE"
+										}
+									}
+								]
 							}
 						}
 					]
 				}
 			}
 		],
-		"parameters": {
-			"Trigger": {
-				"type": "String"
-			}
-		},
-		"variables": {
-			"Trigger_variable": {
-				"type": "String"
-			}
-		},
-		"annotations": []
+		"annotations": [
+			"Metadata-driven orchestration",
+			"Source-type routing",
+			"Sequential job execution"
+		]
 	}
 }
