@@ -371,7 +371,7 @@
                     "type": "String"
                   },
                   "error": {
-                    "value": "",
+                    "value": null,
                     "type": "String"
                   }
                 }
