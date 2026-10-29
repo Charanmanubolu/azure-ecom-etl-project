@@ -257,7 +257,7 @@
             "type": "DatasetReference",
             "parameters": {
               "EntityName": {
-                "value": "@pipeline().parameters.TableName",
+                "value": "@toLower(pipeline().parameters.TableName)",
                 "type": "Expression"
               },
               "YEAR": {
