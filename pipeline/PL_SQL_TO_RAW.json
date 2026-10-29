@@ -1,297 +1,307 @@
 {
-	"name": "PL_SQL_TO_RAW",
-	"properties": {
-		"activities": [
-			{
-				"name": "LKUP_Tables",
-				"type": "Lookup",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 1,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "SqlServerSource",
-						"sqlReaderQuery": "SELECT TABLE_SCHEMA AS SchemaName, TABLE_NAME AS TableName FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA NOT IN ('sys','INFORMATION_SCHEMA') ORDER BY TABLE_SCHEMA, TABLE_NAME",
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "DS_SQLSERVER_TABLE",
-						"type": "DatasetReference",
-						"parameters": {
-							"TableName": "dummy"
-						}
-					},
-					"firstRowOnly": false
-				}
-			},
-			{
-				"name": "ForEach_Table",
-				"type": "ForEach",
-				"dependsOn": [
-					{
-						"activity": "LKUP_Tables",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"items": {
-						"value": "@activity('LKUP_Tables').output.value",
-						"type": "Expression"
-					},
-					"isSequential": true,
-					"activities": [
-						{
-							"name": "LKUP_Source_Row_Count",
-							"type": "Lookup",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 1,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"source": {
-									"type": "SqlServerSource",
-									"sqlReaderQuery": {
-										"value": "@concat('SELECT COUNT_BIG(1) AS SourceRowCount FROM [', replace(item().SchemaName,']',']]'), '].[', replace(item().TableName,']',']]'), ']')",
-										"type": "Expression"
-									},
-									"queryTimeout": "02:00:00",
-									"partitionOption": "None"
-								},
-								"dataset": {
-									"referenceName": "DS_SQLSERVER_TABLE",
-									"type": "DatasetReference",
-									"parameters": {
-										"TableName": {
-											"value": "@item().TableName",
-											"type": "Expression"
-										}
-									}
-								},
-								"firstRowOnly": true
-							}
-						},
-						{
-							"name": "CP_SQLSERVER_RAW",
-							"type": "Copy",
-							"dependsOn": [
-								{
-									"activity": "LKUP_Source_Row_Count",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 1,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"source": {
-									"type": "SqlServerSource",
-									"sqlReaderQuery": {
-										"value": "@concat('SELECT * FROM [', replace(item().SchemaName,']',']]'), '].[', replace(item().TableName,']',']]'), ']')",
-										"type": "Expression"
-									},
-									"queryTimeout": "02:00:00",
-									"partitionOption": "None"
-								},
-								"sink": {
-									"type": "ParquetSink",
-									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings"
-									},
-									"formatSettings": {
-										"type": "ParquetWriteSettings"
-									}
-								},
-								"enableStaging": false,
-								"translator": {
-									"type": "TabularTranslator",
-									"typeConversion": true,
-									"typeConversionSettings": {
-										"allowDataTruncation": true,
-										"treatBooleanAsNumber": false
-									}
-								}
-							},
-							"inputs": [
-								{
-									"referenceName": "DS_SQLSERVER_TABLE",
-									"type": "DatasetReference",
-									"parameters": {
-										"TableName": {
-											"value": "@item().TableName",
-											"type": "Expression"
-										}
-									}
-								}
-							],
-							"outputs": [
-								{
-									"referenceName": "DS_RAW_PARQUET",
-									"type": "DatasetReference",
-									"parameters": {
-										"EntityName": {
-											"value": "@concat(item().SchemaName,'_',item().TableName)",
-											"type": "Expression"
-										},
-										"YEAR": {
-											"value": "@formatDateTime(utcNow(),'yyyy')",
-											"type": "Expression"
-										},
-										"MONTH": {
-											"value": "@formatDateTime(utcNow(),'MM')",
-											"type": "Expression"
-										},
-										"DAY": {
-											"value": "@formatDateTime(utcNow(),'dd')",
-											"type": "Expression"
-										}
-									}
-								}
-							]
-						},
-						{
-							"name": "IF_SQL_ROW_COUNTS_MATCH",
-							"type": "IfCondition",
-							"dependsOn": [
-								{
-									"activity": "CP_SQLSERVER_RAW",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"expression": {
-									"value": "@equals(int(activity('CP_SQLSERVER_RAW').output.rowsCopied),int(activity('LKUP_Source_Row_Count').output.firstRow.SourceRowCount))",
-									"type": "Expression"
-								},
-								"ifFalseActivities": [
-									{
-										"name": "FAIL_SQL_ROW_COUNT_MISMATCH",
-										"type": "Fail",
-										"dependsOn": [],
-										"userProperties": [],
-										"typeProperties": {
-											"message": "SQL Server source row count does not match copied row count for the current table.",
-											"errorCode": "SQL_ROW_COUNT_MISMATCH"
-										}
-									}
-								]
-							}
-						},
-						{
-							"name": "Validate_SQL_Output",
-							"type": "GetMetadata",
-							"dependsOn": [
-								{
-									"activity": "IF_SQL_ROW_COUNTS_MATCH",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 1,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"dataset": {
-									"referenceName": "DS_RAW_PARQUET",
-									"type": "DatasetReference",
-									"parameters": {
-										"EntityName": {
-											"value": "@concat(item().SchemaName,'_',item().TableName)",
-											"type": "Expression"
-										},
-										"YEAR": {
-											"value": "@formatDateTime(utcNow(),'yyyy')",
-											"type": "Expression"
-										},
-										"MONTH": {
-											"value": "@formatDateTime(utcNow(),'MM')",
-											"type": "Expression"
-										},
-										"DAY": {
-											"value": "@formatDateTime(utcNow(),'dd')",
-											"type": "Expression"
-										}
-									}
-								},
-								"fieldList": [
-									"exists",
-									"size"
-								],
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"recursive": false,
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "ParquetReadSettings"
-								}
-							}
-						},
-						{
-							"name": "IF_SQL_Output_Exists",
-							"type": "IfCondition",
-							"dependsOn": [
-								{
-									"activity": "Validate_SQL_Output",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"expression": {
-									"value": "@and(equals(activity('Validate_SQL_Output').output.exists,true),greater(int(activity('Validate_SQL_Output').output.size),0))",
-									"type": "Expression"
-								},
-								"ifFalseActivities": [
-									{
-										"name": "Fail_SQL_Output_Validation",
-										"type": "Fail",
-										"dependsOn": [],
-										"userProperties": [],
-										"typeProperties": {
-											"message": "SQL Server Parquet output is missing or empty.",
-											"errorCode": "SQL_OUTPUT_VALIDATION_FAILED"
-										}
-									}
-								]
-							}
-						}
-					]
-				}
-			}
-		],
-		"annotations": []
-	}
+  "name": "PL_SQL_TO_RAW",
+  "properties": {
+    "activities": [
+      {
+        "name": "LKUP_Tables",
+        "type": "Lookup",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "source": {
+            "type": "SqlServerSource",
+            "sqlReaderQuery": "SELECT TABLE_SCHEMA AS SchemaName, TABLE_NAME AS TableName FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA NOT IN ('sys','INFORMATION_SCHEMA') ORDER BY TABLE_SCHEMA, TABLE_NAME",
+            "queryTimeout": "02:00:00",
+            "partitionOption": "None"
+          },
+          "dataset": {
+            "referenceName": "DS_SQLSERVER_TABLE",
+            "type": "DatasetReference",
+            "parameters": {
+              "TableName": "dummy"
+            }
+          },
+          "firstRowOnly": false
+        }
+      },
+      {
+        "name": "ForEach_Table",
+        "type": "ForEach",
+        "dependsOn": [
+          {
+            "activity": "LKUP_Tables",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "userProperties": [],
+        "typeProperties": {
+          "items": {
+            "value": "@activity('LKUP_Tables').output.value",
+            "type": "Expression"
+          },
+          "isSequential": true,
+          "activities": [
+            {
+              "name": "LKUP_Source_Row_Count",
+              "type": "Lookup",
+              "dependsOn": [],
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 1,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "userProperties": [],
+              "typeProperties": {
+                "source": {
+                  "type": "SqlServerSource",
+                  "sqlReaderQuery": {
+                    "value": "@if(equals(toLower(item().TableName),'orders'),concat('SELECT COUNT_BIG(1) AS SourceRowCount FROM [',replace(item().SchemaName,']',']]'), '].[', replace(item().TableName,']',']]'), '] WHERE order_purchase_timestamp >= ''',pipeline().parameters.pBatchStartDate,''' AND order_purchase_timestamp < ''',pipeline().parameters.pBatchEndDate,''''),concat('SELECT COUNT_BIG(1) AS SourceRowCount FROM [', replace(item().SchemaName,']',']]'), '].[', replace(item().TableName,']',']]'), ']'))",
+                    "type": "Expression"
+                  },
+                  "queryTimeout": "02:00:00",
+                  "partitionOption": "None"
+                },
+                "dataset": {
+                  "referenceName": "DS_SQLSERVER_TABLE",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "TableName": {
+                      "value": "@item().TableName",
+                      "type": "Expression"
+                    }
+                  }
+                },
+                "firstRowOnly": true
+              }
+            },
+            {
+              "name": "CP_SQLSERVER_RAW",
+              "type": "Copy",
+              "dependsOn": [
+                {
+                  "activity": "LKUP_Source_Row_Count",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 1,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "userProperties": [],
+              "typeProperties": {
+                "source": {
+                  "type": "SqlServerSource",
+                  "sqlReaderQuery": {
+                    "value": "@if(equals(toLower(item().TableName),'orders'),concat('SELECT * FROM [',replace(item().SchemaName,']',']]'), '].[', replace(item().TableName,']',']]'), '] WHERE order_purchase_timestamp >= ''',pipeline().parameters.pBatchStartDate,''' AND order_purchase_timestamp < ''',pipeline().parameters.pBatchEndDate,''''),concat('SELECT * FROM [', replace(item().SchemaName,']',']]'), '].[', replace(item().TableName,']',']]'), ']'))",
+                    "type": "Expression"
+                  },
+                  "queryTimeout": "02:00:00",
+                  "partitionOption": "None"
+                },
+                "sink": {
+                  "type": "ParquetSink",
+                  "storeSettings": {
+                    "type": "AzureBlobFSWriteSettings"
+                  },
+                  "formatSettings": {
+                    "type": "ParquetWriteSettings"
+                  }
+                },
+                "enableStaging": false,
+                "translator": {
+                  "type": "TabularTranslator",
+                  "typeConversion": true,
+                  "typeConversionSettings": {
+                    "allowDataTruncation": true,
+                    "treatBooleanAsNumber": false
+                  }
+                }
+              },
+              "inputs": [
+                {
+                  "referenceName": "DS_SQLSERVER_TABLE",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "TableName": {
+                      "value": "@item().TableName",
+                      "type": "Expression"
+                    }
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "referenceName": "DS_RAW_PARQUET",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "EntityName": {
+                      "value": "@concat('sqlserver_',toLower(item().TableName))",
+                      "type": "Expression"
+                    },
+                    "YEAR": {
+                      "value": "@formatDateTime(pipeline().parameters.pBatchStartDate,'yyyy')",
+                      "type": "Expression"
+                    },
+                    "MONTH": {
+                      "value": "'01'",
+                      "type": "Expression"
+                    },
+                    "DAY": {
+                      "value": "'01'",
+                      "type": "Expression"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "IF_SQL_ROW_COUNTS_MATCH",
+              "type": "IfCondition",
+              "dependsOn": [
+                {
+                  "activity": "CP_SQLSERVER_RAW",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "userProperties": [],
+              "typeProperties": {
+                "expression": {
+                  "value": "@equals(int(activity('CP_SQLSERVER_RAW').output.rowsCopied),int(activity('LKUP_Source_Row_Count').output.firstRow.SourceRowCount))",
+                  "type": "Expression"
+                },
+                "ifFalseActivities": [
+                  {
+                    "name": "FAIL_SQL_ROW_COUNT_MISMATCH",
+                    "type": "Fail",
+                    "dependsOn": [],
+                    "userProperties": [],
+                    "typeProperties": {
+                      "message": "SQL Server source row count does not match copied row count for the current table.",
+                      "errorCode": "SQL_ROW_COUNT_MISMATCH"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "Validate_SQL_Output",
+              "type": "GetMetadata",
+              "dependsOn": [
+                {
+                  "activity": "IF_SQL_ROW_COUNTS_MATCH",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 1,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "userProperties": [],
+              "typeProperties": {
+                "dataset": {
+                  "referenceName": "DS_RAW_PARQUET",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "EntityName": {
+                      "value": "@concat('sqlserver_',toLower(item().TableName))",
+                      "type": "Expression"
+                    },
+                    "YEAR": {
+                      "value": "@formatDateTime(pipeline().parameters.pBatchStartDate,'yyyy')",
+                      "type": "Expression"
+                    },
+                    "MONTH": {
+                      "value": "'01'",
+                      "type": "Expression"
+                    },
+                    "DAY": {
+                      "value": "'01'",
+                      "type": "Expression"
+                    }
+                  }
+                },
+                "fieldList": [
+                  "exists",
+                  "size"
+                ],
+                "storeSettings": {
+                  "type": "AzureBlobFSReadSettings",
+                  "recursive": false,
+                  "enablePartitionDiscovery": false
+                },
+                "formatSettings": {
+                  "type": "ParquetReadSettings"
+                }
+              }
+            },
+            {
+              "name": "IF_SQL_Output_Exists",
+              "type": "IfCondition",
+              "dependsOn": [
+                {
+                  "activity": "Validate_SQL_Output",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "userProperties": [],
+              "typeProperties": {
+                "expression": {
+                  "value": "@and(equals(activity('Validate_SQL_Output').output.exists,true),greater(int(activity('Validate_SQL_Output').output.size),0))",
+                  "type": "Expression"
+                },
+                "ifFalseActivities": [
+                  {
+                    "name": "Fail_SQL_Output_Validation",
+                    "type": "Fail",
+                    "dependsOn": [],
+                    "userProperties": [],
+                    "typeProperties": {
+                      "message": "SQL Server Parquet output is missing or empty.",
+                      "errorCode": "SQL_OUTPUT_VALIDATION_FAILED"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "annotations": [],
+    "parameters": {
+      "pBatchStartDate": {
+        "type": "string",
+        "defaultValue": "2016-01-01"
+      },
+      "pBatchEndDate": {
+        "type": "string",
+        "defaultValue": "2017-01-01"
+      }
+    }
+  }
 }
