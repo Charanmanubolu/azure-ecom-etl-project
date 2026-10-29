@@ -155,7 +155,7 @@
                       "type": "Expression"
                     },
                     "YEAR": {
-                      "value": "@formatDateTime(pipeline().parameters.pBatchStartDate,'yyyy')",
+                      "value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'yyyy'),'snapshot')",
                       "type": "Expression"
                     },
                     "MONTH": {
@@ -230,7 +230,7 @@
                       "type": "Expression"
                     },
                     "YEAR": {
-                      "value": "@formatDateTime(pipeline().parameters.pBatchStartDate,'yyyy')",
+                      "value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'yyyy'),'snapshot')",
                       "type": "Expression"
                     },
                     "MONTH": {
