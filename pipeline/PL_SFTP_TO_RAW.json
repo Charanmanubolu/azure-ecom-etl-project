@@ -214,14 +214,7 @@
                           "fieldList": [
                             "exists",
                             "size"
-                          ],
-                          "storeSettings": {
-                            "type": "AzureBlobFSReadSettings",
-                            "enablePartitionDiscovery": false
-                          },
-                          "formatSettings": {
-                            "type": "ParquetReadSettings"
-                          }
+                          ]
                         }
                       },
                       {
@@ -420,14 +413,7 @@
                           "fieldList": [
                             "exists",
                             "size"
-                          ],
-                          "storeSettings": {
-                            "type": "AzureBlobFSReadSettings",
-                            "enablePartitionDiscovery": false
-                          },
-                          "formatSettings": {
-                            "type": "ParquetReadSettings"
-                          }
+                          ]
                         }
                       },
                       {
@@ -623,14 +609,7 @@
                           "fieldList": [
                             "exists",
                             "size"
-                          ],
-                          "storeSettings": {
-                            "type": "AzureBlobFSReadSettings",
-                            "enablePartitionDiscovery": false
-                          },
-                          "formatSettings": {
-                            "type": "ParquetReadSettings"
-                          }
+                          ]
                         }
                       },
                       {
