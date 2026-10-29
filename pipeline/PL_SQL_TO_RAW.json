@@ -415,6 +415,92 @@
                 ],
                 "ifFalseActivities": []
               }
+            },
+            {
+              "name": "IF_Update_Snapshot_Watermark",
+              "type": "IfCondition",
+              "dependsOn": [
+                {
+                  "activity": "IF_Update_Orders_Watermark",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "userProperties": [],
+              "typeProperties": {
+                "expression": {
+                  "value": "@or(equals(toLower(item().TableName),'products'),equals(toLower(item().TableName),'sellers'))",
+                  "type": "Expression"
+                },
+                "ifTrueActivities": [
+                  {
+                    "name": "SP_Update_Snapshot_Watermark",
+                    "type": "SqlServerStoredProcedure",
+                    "dependsOn": [],
+                    "policy": {
+                      "timeout": "0.00:05:00",
+                      "retry": 1,
+                      "retryIntervalInSeconds": 15,
+                      "secureOutput": false,
+                      "secureInput": false
+                    },
+                    "userProperties": [],
+                    "typeProperties": {
+                      "storedProcedureName": "dbo.ecom_update_watermark",
+                      "storedProcedureParameters": {
+                        "source_type": {
+                          "value": {
+                            "value": "SQLServer",
+                            "type": "Expression"
+                          },
+                          "type": "String"
+                        },
+                        "source_name": {
+                          "value": {
+                            "value": "OnPremises",
+                            "type": "Expression"
+                          },
+                          "type": "String"
+                        },
+                        "schema_name": {
+                          "value": {
+                            "value": "@item().SchemaName",
+                            "type": "Expression"
+                          },
+                          "type": "String"
+                        },
+                        "table_name": {
+                          "value": {
+                            "value": "@item().TableName",
+                            "type": "Expression"
+                          },
+                          "type": "String"
+                        },
+                        "watermark_column": {
+                          "value": {
+                            "value": "SNAPSHOT_LOAD_UTC",
+                            "type": "Expression"
+                          },
+                          "type": "String"
+                        },
+                        "last_load_value": {
+                          "value": {
+                            "value": "@utcNow()",
+                            "type": "Expression"
+                          },
+                          "type": "String"
+                        }
+                      }
+                    },
+                    "linkedServiceName": {
+                      "referenceName": "LS_AzureSQLDB",
+                      "type": "LinkedServiceReference"
+                    }
+                  }
+                ],
+                "ifFalseActivities": []
+              }
             }
           ],
           "batchCount": 3
