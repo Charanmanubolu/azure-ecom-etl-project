@@ -29,7 +29,7 @@
           "type": "Expression"
         },
         "folderPath": {
-          "value": "@concat(dataset().EntityName,'/',if(equals(dataset().YEAR,'snapshot'),'snapshot',concat('year=',dataset().YEAR)))",
+          "value": "@concat(dataset().EntityName,'/',dataset().YEAR,'/',dataset().MONTH,'/',dataset().DAY)",
           "type": "Expression"
         },
         "fileSystem": "raw"
