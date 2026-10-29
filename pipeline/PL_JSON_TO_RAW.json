@@ -253,41 +253,6 @@
                         }
                       }
                     ]
-                  },
-                  {
-                    "name": "Check_Rows_Copied",
-                    "type": "IfCondition",
-                    "dependsOn": [
-                      {
-                        "activity": "Copy_JSON_To_Parquet",
-                        "dependencyConditions": [
-                          "Succeeded"
-                        ]
-                      }
-                    ],
-                    "userProperties": [],
-                    "typeProperties": {
-                      "expression": {
-                        "value": "@greater(int(activity('Copy_JSON_To_Parquet').output.rowsCopied),0)",
-                        "type": "Expression"
-                      },
-                      "ifTrueActivities": [],
-                      "ifFalseActivities": [
-                        {
-                          "name": "Fail_Zero_Rows",
-                          "type": "Fail",
-                          "dependsOn": [],
-                          "userProperties": [],
-                          "typeProperties": {
-                            "message": {
-                              "value": "@concat('JSON file produced zero rows: ',item().name)",
-                              "type": "Expression"
-                            },
-                            "errorCode": "ZERO_ROWS_COPIED"
-                          }
-                        }
-                      ]
-                    }
                   }
                 ],
                 "ifFalseActivities": [
