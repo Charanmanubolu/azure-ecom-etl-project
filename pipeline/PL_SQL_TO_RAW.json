@@ -151,7 +151,7 @@
                   "type": "DatasetReference",
                   "parameters": {
                     "EntityName": {
-                      "value": "@concat('sqlserver_',toLower(item().TableName))",
+                      "value": "@toLower(item().TableName)",
                       "type": "Expression"
                     },
                     "YEAR": {
@@ -226,7 +226,7 @@
                   "type": "DatasetReference",
                   "parameters": {
                     "EntityName": {
-                      "value": "@concat('sqlserver_',toLower(item().TableName))",
+                      "value": "@toLower(item().TableName)",
                       "type": "Expression"
                     },
                     "YEAR": {
