@@ -155,15 +155,15 @@
                       "type": "Expression"
                     },
                     "YEAR": {
-                      "value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'yyyy'),'snapshot')",
+                      "value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'yyyy'),formatDateTime(utcNow(),'yyyy'))",
                       "type": "Expression"
                     },
                     "MONTH": {
-                      "value": "'01'",
+                      "value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'MM'),formatDateTime(utcNow(),'MM'))",
                       "type": "Expression"
                     },
                     "DAY": {
-                      "value": "'01'",
+                      "value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'dd'),formatDateTime(utcNow(),'dd'))",
                       "type": "Expression"
                     }
                   }
@@ -230,15 +230,15 @@
                       "type": "Expression"
                     },
                     "YEAR": {
-                      "value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'yyyy'),'snapshot')",
+                      "value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'yyyy'),formatDateTime(utcNow(),'yyyy'))",
                       "type": "Expression"
                     },
                     "MONTH": {
-                      "value": "'01'",
+                      "value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'MM'),formatDateTime(utcNow(),'MM'))",
                       "type": "Expression"
                     },
                     "DAY": {
-                      "value": "'01'",
+                      "value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'dd'),formatDateTime(utcNow(),'dd'))",
                       "type": "Expression"
                     }
                   }
