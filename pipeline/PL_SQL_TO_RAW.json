@@ -48,7 +48,7 @@
             "value": "@activity('LKUP_Tables').output.value",
             "type": "Expression"
           },
-          "isSequential": true,
+          "isSequential": false,
           "activities": [
             {
               "name": "LKUP_Source_Row_Count",
@@ -416,7 +416,8 @@
                 "ifFalseActivities": []
               }
             }
-          ]
+          ],
+          "batchCount": 3
         }
       }
     ],
