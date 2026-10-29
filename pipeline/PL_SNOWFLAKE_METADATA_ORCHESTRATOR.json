@@ -60,7 +60,7 @@
             "value": "@activity('LKUP_SNOWFLAKE_TABLES').output.value",
             "type": "Expression"
           },
-          "isSequential": true,
+          "isSequential": false,
           "activities": [
             {
               "name": "EXEC_PL_SNOWFLAKE_TO_RAW",
@@ -92,7 +92,8 @@
                 }
               }
             }
-          ]
+          ],
+          "batchCount": 3
         }
       }
     ],
