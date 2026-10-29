@@ -46,7 +46,7 @@
             "value": "@activity('LKUP_Master_Job_Metadata').output.value",
             "type": "Expression"
           },
-          "isSequential": true,
+          "isSequential": false,
           "activities": [
             {
               "name": "SP_Start_Job_Log",
@@ -441,7 +441,8 @@
                 "type": "LinkedServiceReference"
               }
             }
-          ]
+          ],
+          "batchCount": 3
         }
       }
     ],
