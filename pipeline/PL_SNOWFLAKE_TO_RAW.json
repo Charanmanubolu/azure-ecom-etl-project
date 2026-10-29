@@ -353,7 +353,7 @@
         "type": "SqlServerStoredProcedure",
         "dependsOn": [
           {
-            "activity": "DEL_STAGING_CSV",
+            "activity": "IF_PARQUET_COUNT_MATCHES",
             "dependencyConditions": [
               "Succeeded"
             ]
