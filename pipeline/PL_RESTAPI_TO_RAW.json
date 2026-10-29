@@ -1,145 +1,145 @@
 {
-	"name": "PL_RESTAPI_TO_RAW",
-	"properties": {
-		"activities": [
-			{
-				"name": "Validate_API",
-				"type": "WebActivity",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.00:02:00",
-					"retry": 2,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"method": "GET",
-					"disableCertValidation": false,
-					"httpRequestTimeout": "00:01:40",
-					"url": {
-						"value": "@pipeline().parameters.pApiUrl",
-						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "Copy_RESTAPI_to_Raw",
-				"type": "Copy",
-				"dependsOn": [
-					{
-						"activity": "Validate_API",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 2,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "RestSource",
-						"httpRequestTimeout": "00:01:40",
-						"requestInterval": "00.00:00:00.010",
-						"requestMethod": "GET"
-					},
-					"sink": {
-						"type": "ParquetSink",
-						"storeSettings": {
-							"type": "AzureBlobFSWriteSettings"
-						},
-						"formatSettings": {
-							"type": "ParquetWriteSettings"
-						}
-					},
-					"enableStaging": false
-				},
-				"inputs": [
-					{
-						"referenceName": "DS_REST_API",
-						"type": "DatasetReference",
-						"parameters": {
-							"ApiUrl": {
-								"value": "@pipeline().parameters.pApiUrl",
-								"type": "Expression"
-							}
-						}
-					}
-				],
-				"outputs": [
-					{
-						"referenceName": "DS_RAW_PARQUET",
-						"type": "DatasetReference",
-						"parameters": {
-							"EntityName": {
-								"value": "@pipeline().parameters.pEntityName",
-								"type": "Expression"
-							},
-							"YEAR": {
-								"value": "@formatDateTime(utcNow(),'yyyy')",
-								"type": "Expression"
-							},
-							"MONTH": {
-								"value": "@formatDateTime(utcNow(),'MM')",
-								"type": "Expression"
-							},
-							"DAY": {
-								"value": "@formatDateTime(utcNow(),'dd')",
-								"type": "Expression"
-							}
-						}
-					}
-				]
-			},
-			{
-				"name": "IF_ROWS_COPIED",
-				"type": "IfCondition",
-				"dependsOn": [
-					{
-						"activity": "Copy_RESTAPI_to_Raw",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"expression": {
-						"value": "@greater(int(activity('Copy_RESTAPI_to_Raw').output.rowsCopied),0)",
-						"type": "Expression"
-					},
-					"ifFalseActivities": [
-						{
-							"name": "FAIL_EMPTY_API_RESPONSE",
-							"type": "Fail",
-							"dependsOn": [],
-							"userProperties": [],
-							"typeProperties": {
-								"message": "REST API returned zero copied rows. Check the endpoint and response structure.",
-								"errorCode": "EMPTY_API_RESPONSE"
-							}
-						}
-					]
-				}
-			}
-		],
-		"parameters": {
-			"pEntityName": {
-				"type": "String",
-				"defaultValue": "retool_data"
-			},
-			"pApiUrl": {
-				"type": "String",
-				"defaultValue": "https://retoolapi.dev/WL6Gkn/data"
-			}
-		},
-		"annotations": []
-	}
+  "name": "PL_RESTAPI_TO_RAW",
+  "properties": {
+    "activities": [
+      {
+        "name": "Validate_API",
+        "type": "WebActivity",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.00:02:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "method": "GET",
+          "disableCertValidation": false,
+          "httpRequestTimeout": "00:01:40",
+          "url": {
+            "value": "@pipeline().parameters.pApiUrl",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Copy_RESTAPI_to_Raw",
+        "type": "Copy",
+        "dependsOn": [
+          {
+            "activity": "Validate_API",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "source": {
+            "type": "RestSource",
+            "httpRequestTimeout": "00:01:40",
+            "requestInterval": "00.00:00:00.010",
+            "requestMethod": "GET"
+          },
+          "sink": {
+            "type": "ParquetSink",
+            "storeSettings": {
+              "type": "AzureBlobFSWriteSettings"
+            },
+            "formatSettings": {
+              "type": "ParquetWriteSettings"
+            }
+          },
+          "enableStaging": false
+        },
+        "inputs": [
+          {
+            "referenceName": "DS_REST_API",
+            "type": "DatasetReference",
+            "parameters": {
+              "ApiUrl": {
+                "value": "@pipeline().parameters.pApiUrl",
+                "type": "Expression"
+              }
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "DS_RAW_PARQUET",
+            "type": "DatasetReference",
+            "parameters": {
+              "EntityName": {
+                "value": "@toLower(pipeline().parameters.pEntityName)",
+                "type": "Expression"
+              },
+              "YEAR": {
+                "value": "@formatDateTime(utcNow(),'yyyy')",
+                "type": "Expression"
+              },
+              "MONTH": {
+                "value": "@formatDateTime(utcNow(),'MM')",
+                "type": "Expression"
+              },
+              "DAY": {
+                "value": "@formatDateTime(utcNow(),'dd')",
+                "type": "Expression"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "IF_ROWS_COPIED",
+        "type": "IfCondition",
+        "dependsOn": [
+          {
+            "activity": "Copy_RESTAPI_to_Raw",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "userProperties": [],
+        "typeProperties": {
+          "expression": {
+            "value": "@greater(int(activity('Copy_RESTAPI_to_Raw').output.rowsCopied),0)",
+            "type": "Expression"
+          },
+          "ifFalseActivities": [
+            {
+              "name": "FAIL_EMPTY_API_RESPONSE",
+              "type": "Fail",
+              "dependsOn": [],
+              "userProperties": [],
+              "typeProperties": {
+                "message": "REST API returned zero copied rows. Check the endpoint and response structure.",
+                "errorCode": "EMPTY_API_RESPONSE"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "parameters": {
+      "pEntityName": {
+        "type": "String",
+        "defaultValue": "product_category_name_translation"
+      },
+      "pApiUrl": {
+        "type": "String",
+        "defaultValue": "https://retoolapi.dev/WL6Gkn/data"
+      }
+    },
+    "annotations": []
+  }
 }
