@@ -1,41 +1,41 @@
 {
-	"name": "DS_RAW_PARQUET",
-	"properties": {
-		"linkedServiceName": {
-			"referenceName": "LS_ADLS_RAW",
-			"type": "LinkedServiceReference"
-		},
-		"parameters": {
-			"EntityName": {
-				"type": "string"
-			},
-			"YEAR": {
-				"type": "string"
-			},
-			"MONTH": {
-				"type": "string"
-			},
-			"DAY": {
-				"type": "string"
-			}
-		},
-		"annotations": [],
-		"type": "Parquet",
-		"typeProperties": {
-			"location": {
-				"type": "AzureBlobFSLocation",
-				"fileName": {
-					"value": "@concat(dataset().EntityName,'.parquet')",
-					"type": "Expression"
-				},
-				"folderPath": {
-					"value": "@concat(dataset().EntityName,'/',dataset().YEAR,'/',dataset().MONTH,'/',dataset().DAY)",
-					"type": "Expression"
-				},
-				"fileSystem": "raw"
-			},
-			"compressionCodec": "snappy"
-		},
-		"schema": []
-	}
+  "name": "DS_RAW_PARQUET",
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "LS_ADLS_RAW",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "EntityName": {
+        "type": "string"
+      },
+      "YEAR": {
+        "type": "string"
+      },
+      "MONTH": {
+        "type": "string"
+      },
+      "DAY": {
+        "type": "string"
+      }
+    },
+    "annotations": [],
+    "type": "Parquet",
+    "typeProperties": {
+      "location": {
+        "type": "AzureBlobFSLocation",
+        "fileName": {
+          "value": "@concat(dataset().EntityName,'.parquet')",
+          "type": "Expression"
+        },
+        "folderPath": {
+          "value": "@concat(dataset().EntityName,'/',if(equals(dataset().YEAR,'snapshot'),'snapshot',concat('year=',dataset().YEAR)))",
+          "type": "Expression"
+        },
+        "fileSystem": "raw"
+      },
+      "compressionCodec": "snappy"
+    },
+    "schema": []
+  }
 }
