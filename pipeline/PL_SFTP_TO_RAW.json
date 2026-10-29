@@ -150,7 +150,7 @@
                             "type": "DatasetReference",
                             "parameters": {
                               "EntityName": {
-                                "value": "@substring(item().name,0,lastIndexOf(item().name,'.'))",
+                                "value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
                                 "type": "Expression"
                               },
                               "YEAR": {
@@ -230,7 +230,7 @@
                             "type": "DatasetReference",
                             "parameters": {
                               "EntityName": {
-                                "value": "@substring(item().name,0,lastIndexOf(item().name,'.'))",
+                                "value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
                                 "type": "Expression"
                               },
                               "YEAR": {
@@ -307,7 +307,7 @@
                             "type": "DatasetReference",
                             "parameters": {
                               "EntityName": {
-                                "value": "@substring(item().name,0,lastIndexOf(item().name,'.'))",
+                                "value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
                                 "type": "Expression"
                               },
                               "YEAR": {
