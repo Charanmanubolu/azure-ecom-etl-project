@@ -1,286 +1,287 @@
 {
-	"name": "PL_JSON_TO_RAW",
-	"properties": {
-		"description": "Metadata-driven folder and filename JSON ingestion to ADLS Gen2 RAW Parquet with file-size and row-count checks.",
-		"activities": [
-			{
-				"name": "Get_Source_Files",
-				"type": "GetMetadata",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.00:10:00",
-					"retry": 1,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"dataset": {
-						"referenceName": "DS_BLOB_FOLDER",
-						"type": "DatasetReference",
-						"parameters": {
-							"FolderPath": {
-								"value": "@pipeline().parameters.pSourceDirectory",
-								"type": "Expression"
-							}
-						}
-					},
-					"fieldList": [
-						"childItems"
-					],
-					"storeSettings": {
-						"type": "AzureBlobFSReadSettings",
-						"recursive": false,
-						"enablePartitionDiscovery": false
-					},
-					"formatSettings": {
-						"type": "BinaryReadSettings"
-					}
-				}
-			},
-			{
-				"name": "Filter_JSON_Files",
-				"type": "Filter",
-				"dependsOn": [
-					{
-						"activity": "Get_Source_Files",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"items": {
-						"value": "@activity('Get_Source_Files').output.childItems",
-						"type": "Expression"
-					},
-					"condition": {
-						"value": "@and(equals(item().type,'File'),endsWith(toLower(item().name),'.json'))",
-						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "Check_No_JSON_Files",
-				"type": "IfCondition",
-				"dependsOn": [
-					{
-						"activity": "Filter_JSON_Files",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"expression": {
-						"value": "@equals(length(activity('Filter_JSON_Files').output.value),0)",
-						"type": "Expression"
-					},
-					"ifTrueActivities": [
-						{
-							"name": "Fail_No_JSON_Files",
-							"type": "Fail",
-							"dependsOn": [],
-							"userProperties": [],
-							"typeProperties": {
-								"message": "No JSON files were found in the configured source folder.",
-								"errorCode": "NO_JSON_FILES"
-							}
-						}
-					]
-				}
-			},
-			{
-				"name": "ForEach_JSON_File",
-				"type": "ForEach",
-				"dependsOn": [
-					{
-						"activity": "Filter_JSON_Files",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"items": {
-						"value": "@activity('Filter_JSON_Files').output.value",
-						"type": "Expression"
-					},
-					"isSequential": true,
-					"activities": [
-						{
-							"name": "Get_JSON_File_Metadata",
-							"type": "GetMetadata",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "0.00:10:00",
-								"retry": 1,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"dataset": {
-									"referenceName": "DS_Json",
-									"type": "DatasetReference",
-									"parameters": {
-										"FolderPath": {
-											"value": "@pipeline().parameters.pSourceDirectory",
-											"type": "Expression"
-										},
-										"FileName": {
-											"value": "@item().name",
-											"type": "Expression"
-										}
-									}
-								},
-								"fieldList": [
-									"exists",
-									"size"
-								],
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "JsonReadSettings"
-								}
-							}
-						},
-						{
-							"name": "Check_JSON_File_Size",
-							"type": "IfCondition",
-							"dependsOn": [
-								{
-									"activity": "Get_JSON_File_Metadata",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"expression": {
-									"value": "@and(activity('Get_JSON_File_Metadata').output.exists,greater(activity('Get_JSON_File_Metadata').output.size,0))",
-									"type": "Expression"
-								},
-								"ifFalseActivities": [
-									{
-										"name": "Fail_Empty_JSON_File",
-										"type": "Fail",
-										"dependsOn": [],
-										"userProperties": [],
-										"typeProperties": {
-											"message": {
-												"value": "@concat('JSON file is empty or missing: ',item().name)",
-												"type": "Expression"
-											},
-											"errorCode": "EMPTY_JSON_FILE"
-										}
-									}
-								],
-								"ifTrueActivities": [
-									{
-										"name": "Copy_JSON_To_Parquet",
-										"type": "Copy",
-										"dependsOn": [],
-										"policy": {
-											"timeout": "0.12:00:00",
-											"retry": 2,
-											"retryIntervalInSeconds": 30,
-											"secureOutput": false,
-											"secureInput": false
-										},
-										"userProperties": [],
-										"typeProperties": {
-											"source": {
-												"type": "JsonSource",
-												"storeSettings": {
-													"type": "AzureBlobFSReadSettings",
-													"recursive": false,
-													"enablePartitionDiscovery": false
-												},
-												"formatSettings": {
-													"type": "JsonReadSettings"
-												}
-											},
-											"sink": {
-												"type": "ParquetSink",
-												"storeSettings": {
-													"type": "AzureBlobFSWriteSettings"
-												},
-												"formatSettings": {
-													"type": "ParquetWriteSettings"
-												}
-											},
-											"enableStaging": false
-										},
-										"inputs": [
-											{
-												"referenceName": "DS_Json",
-												"type": "DatasetReference",
-												"parameters": {
-													"FileName": {
-														"value": "@item().name",
-														"type": "Expression"
-													},
-													"FolderPath": {
-														"value": "@pipeline().parameters.pSourceDirectory",
-														"type": "Expression"
-													}
-												}
-											}
-										],
-										"outputs": [
-											{
-												"referenceName": "DS_RAW_PARQUET",
-												"type": "DatasetReference",
-												"parameters": {
-													"EntityName": {
-														"value": "@replace(toLower(item().name),'.json','')",
-														"type": "Expression"
-													},
-													"YEAR": {
-														"value": "@formatDateTime(utcNow(),'yyyy')",
-														"type": "Expression"
-													},
-													"MONTH": {
-														"value": "@formatDateTime(utcNow(),'MM')",
-														"type": "Expression"
-													},
-													"DAY": {
-														"value": "@formatDateTime(utcNow(),'dd')",
-														"type": "Expression"
-													}
-												}
-											}
-										]
-									}
-								]
-							}
-						}
-					]
-				}
-			}
-		],
-		"parameters": {
-			"pSourceDirectory": {
-				"type": "String",
-				"defaultValue": "json_files"
-			}
-		},
-		"annotations": [
-			"JSON ingestion",
-			"Dynamic filename",
-			"Dynamic date partition",
-			"File-size validation",
-			"Row-count validation",
-			"RAW Parquet"
-		]
-	}
+  "name": "PL_JSON_TO_RAW",
+  "properties": {
+    "description": "Metadata-driven folder and filename JSON ingestion to ADLS Gen2 RAW Parquet with file-size and row-count checks.",
+    "activities": [
+      {
+        "name": "Get_Source_Files",
+        "type": "GetMetadata",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.00:10:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "dataset": {
+            "referenceName": "DS_BLOB_FOLDER",
+            "type": "DatasetReference",
+            "parameters": {
+              "FolderPath": {
+                "value": "@pipeline().parameters.pSourceDirectory",
+                "type": "Expression"
+              }
+            }
+          },
+          "fieldList": [
+            "childItems"
+          ],
+          "storeSettings": {
+            "type": "AzureBlobFSReadSettings",
+            "recursive": false,
+            "enablePartitionDiscovery": false
+          },
+          "formatSettings": {
+            "type": "BinaryReadSettings"
+          }
+        }
+      },
+      {
+        "name": "Filter_JSON_Files",
+        "type": "Filter",
+        "dependsOn": [
+          {
+            "activity": "Get_Source_Files",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "userProperties": [],
+        "typeProperties": {
+          "items": {
+            "value": "@activity('Get_Source_Files').output.childItems",
+            "type": "Expression"
+          },
+          "condition": {
+            "value": "@and(equals(item().type,'File'),endsWith(toLower(item().name),'.json'))",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Check_No_JSON_Files",
+        "type": "IfCondition",
+        "dependsOn": [
+          {
+            "activity": "Filter_JSON_Files",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "userProperties": [],
+        "typeProperties": {
+          "expression": {
+            "value": "@equals(length(activity('Filter_JSON_Files').output.value),0)",
+            "type": "Expression"
+          },
+          "ifTrueActivities": [
+            {
+              "name": "Fail_No_JSON_Files",
+              "type": "Fail",
+              "dependsOn": [],
+              "userProperties": [],
+              "typeProperties": {
+                "message": "No JSON files were found in the configured source folder.",
+                "errorCode": "NO_JSON_FILES"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "ForEach_JSON_File",
+        "type": "ForEach",
+        "dependsOn": [
+          {
+            "activity": "Filter_JSON_Files",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "userProperties": [],
+        "typeProperties": {
+          "items": {
+            "value": "@activity('Filter_JSON_Files').output.value",
+            "type": "Expression"
+          },
+          "isSequential": false,
+          "activities": [
+            {
+              "name": "Get_JSON_File_Metadata",
+              "type": "GetMetadata",
+              "dependsOn": [],
+              "policy": {
+                "timeout": "0.00:10:00",
+                "retry": 1,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "userProperties": [],
+              "typeProperties": {
+                "dataset": {
+                  "referenceName": "DS_Json",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "FolderPath": {
+                      "value": "@pipeline().parameters.pSourceDirectory",
+                      "type": "Expression"
+                    },
+                    "FileName": {
+                      "value": "@item().name",
+                      "type": "Expression"
+                    }
+                  }
+                },
+                "fieldList": [
+                  "exists",
+                  "size"
+                ],
+                "storeSettings": {
+                  "type": "AzureBlobFSReadSettings",
+                  "enablePartitionDiscovery": false
+                },
+                "formatSettings": {
+                  "type": "JsonReadSettings"
+                }
+              }
+            },
+            {
+              "name": "Check_JSON_File_Size",
+              "type": "IfCondition",
+              "dependsOn": [
+                {
+                  "activity": "Get_JSON_File_Metadata",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "userProperties": [],
+              "typeProperties": {
+                "expression": {
+                  "value": "@and(activity('Get_JSON_File_Metadata').output.exists,greater(activity('Get_JSON_File_Metadata').output.size,0))",
+                  "type": "Expression"
+                },
+                "ifFalseActivities": [
+                  {
+                    "name": "Fail_Empty_JSON_File",
+                    "type": "Fail",
+                    "dependsOn": [],
+                    "userProperties": [],
+                    "typeProperties": {
+                      "message": {
+                        "value": "@concat('JSON file is empty or missing: ',item().name)",
+                        "type": "Expression"
+                      },
+                      "errorCode": "EMPTY_JSON_FILE"
+                    }
+                  }
+                ],
+                "ifTrueActivities": [
+                  {
+                    "name": "Copy_JSON_To_Parquet",
+                    "type": "Copy",
+                    "dependsOn": [],
+                    "policy": {
+                      "timeout": "0.12:00:00",
+                      "retry": 2,
+                      "retryIntervalInSeconds": 30,
+                      "secureOutput": false,
+                      "secureInput": false
+                    },
+                    "userProperties": [],
+                    "typeProperties": {
+                      "source": {
+                        "type": "JsonSource",
+                        "storeSettings": {
+                          "type": "AzureBlobFSReadSettings",
+                          "recursive": false,
+                          "enablePartitionDiscovery": false
+                        },
+                        "formatSettings": {
+                          "type": "JsonReadSettings"
+                        }
+                      },
+                      "sink": {
+                        "type": "ParquetSink",
+                        "storeSettings": {
+                          "type": "AzureBlobFSWriteSettings"
+                        },
+                        "formatSettings": {
+                          "type": "ParquetWriteSettings"
+                        }
+                      },
+                      "enableStaging": false
+                    },
+                    "inputs": [
+                      {
+                        "referenceName": "DS_Json",
+                        "type": "DatasetReference",
+                        "parameters": {
+                          "FileName": {
+                            "value": "@item().name",
+                            "type": "Expression"
+                          },
+                          "FolderPath": {
+                            "value": "@pipeline().parameters.pSourceDirectory",
+                            "type": "Expression"
+                          }
+                        }
+                      }
+                    ],
+                    "outputs": [
+                      {
+                        "referenceName": "DS_RAW_PARQUET",
+                        "type": "DatasetReference",
+                        "parameters": {
+                          "EntityName": {
+                            "value": "@replace(toLower(item().name),'.json','')",
+                            "type": "Expression"
+                          },
+                          "YEAR": {
+                            "value": "@formatDateTime(utcNow(),'yyyy')",
+                            "type": "Expression"
+                          },
+                          "MONTH": {
+                            "value": "@formatDateTime(utcNow(),'MM')",
+                            "type": "Expression"
+                          },
+                          "DAY": {
+                            "value": "@formatDateTime(utcNow(),'dd')",
+                            "type": "Expression"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "batchCount": 3
+        }
+      }
+    ],
+    "parameters": {
+      "pSourceDirectory": {
+        "type": "String",
+        "defaultValue": "json_files"
+      }
+    },
+    "annotations": [
+      "JSON ingestion",
+      "Dynamic filename",
+      "Dynamic date partition",
+      "File-size validation",
+      "Row-count validation",
+      "RAW Parquet"
+    ]
+  }
 }
