@@ -168,6 +168,132 @@
                             }
                           }
                         ]
+                      },
+                      {
+                        "name": "Validate_Copy_CSV_To_Raw_Output",
+                        "type": "GetMetadata",
+                        "dependsOn": [
+                          {
+                            "activity": "Copy_CSV_To_Raw",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "dataset": {
+                            "referenceName": "DS_RAW_PARQUET",
+                            "type": "DatasetReference",
+                            "parameters": {
+                              "EntityName": {
+                                "value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
+                                "type": "Expression"
+                              },
+                              "YEAR": {
+                                "value": "@formatDateTime(utcNow(),'yyyy')",
+                                "type": "Expression"
+                              },
+                              "MONTH": {
+                                "value": "@formatDateTime(utcNow(),'MM')",
+                                "type": "Expression"
+                              },
+                              "DAY": {
+                                "value": "@formatDateTime(utcNow(),'dd')",
+                                "type": "Expression"
+                              }
+                            }
+                          },
+                          "fieldList": [
+                            "exists",
+                            "size"
+                          ],
+                          "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "enablePartitionDiscovery": false
+                          },
+                          "formatSettings": {
+                            "type": "ParquetReadSettings"
+                          }
+                        }
+                      },
+                      {
+                        "name": "SP_Update_SFTP_Snapshot_CSV",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "Validate_Copy_CSV_To_Raw_Output",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "userProperties": [],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_update_watermark",
+                          "storedProcedureParameters": {
+                            "source_type": {
+                              "value": {
+                                "value": "SFTP",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "source_name": {
+                              "value": {
+                                "value": "Azure",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "schema_name": {
+                              "value": {
+                                "value": "@pipeline().parameters.pSourceFolder",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "table_name": {
+                              "value": {
+                                "value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "watermark_column": {
+                              "value": {
+                                "value": "SNAPSHOT_LOAD_UTC",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "last_load_value": {
+                              "value": {
+                                "value": "@utcNow()",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
                       }
                     ]
                   },
@@ -248,6 +374,132 @@
                             }
                           }
                         ]
+                      },
+                      {
+                        "name": "Validate_Copy_JSON_To_Raw_Output",
+                        "type": "GetMetadata",
+                        "dependsOn": [
+                          {
+                            "activity": "Copy_JSON_To_Raw",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "dataset": {
+                            "referenceName": "DS_RAW_PARQUET",
+                            "type": "DatasetReference",
+                            "parameters": {
+                              "EntityName": {
+                                "value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
+                                "type": "Expression"
+                              },
+                              "YEAR": {
+                                "value": "@formatDateTime(utcNow(),'yyyy')",
+                                "type": "Expression"
+                              },
+                              "MONTH": {
+                                "value": "@formatDateTime(utcNow(),'MM')",
+                                "type": "Expression"
+                              },
+                              "DAY": {
+                                "value": "@formatDateTime(utcNow(),'dd')",
+                                "type": "Expression"
+                              }
+                            }
+                          },
+                          "fieldList": [
+                            "exists",
+                            "size"
+                          ],
+                          "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "enablePartitionDiscovery": false
+                          },
+                          "formatSettings": {
+                            "type": "ParquetReadSettings"
+                          }
+                        }
+                      },
+                      {
+                        "name": "SP_Update_SFTP_Snapshot_JSON",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "Validate_Copy_JSON_To_Raw_Output",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "userProperties": [],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_update_watermark",
+                          "storedProcedureParameters": {
+                            "source_type": {
+                              "value": {
+                                "value": "SFTP",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "source_name": {
+                              "value": {
+                                "value": "Azure",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "schema_name": {
+                              "value": {
+                                "value": "@pipeline().parameters.pSourceFolder",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "table_name": {
+                              "value": {
+                                "value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "watermark_column": {
+                              "value": {
+                                "value": "SNAPSHOT_LOAD_UTC",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "last_load_value": {
+                              "value": {
+                                "value": "@utcNow()",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
                       }
                     ]
                   },
@@ -325,6 +577,132 @@
                             }
                           }
                         ]
+                      },
+                      {
+                        "name": "Validate_Copy_EXCEL_To_Raw_Output",
+                        "type": "GetMetadata",
+                        "dependsOn": [
+                          {
+                            "activity": "Copy_EXCEL_To_Raw",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "dataset": {
+                            "referenceName": "DS_RAW_PARQUET",
+                            "type": "DatasetReference",
+                            "parameters": {
+                              "EntityName": {
+                                "value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
+                                "type": "Expression"
+                              },
+                              "YEAR": {
+                                "value": "@formatDateTime(utcNow(),'yyyy')",
+                                "type": "Expression"
+                              },
+                              "MONTH": {
+                                "value": "@formatDateTime(utcNow(),'MM')",
+                                "type": "Expression"
+                              },
+                              "DAY": {
+                                "value": "@formatDateTime(utcNow(),'dd')",
+                                "type": "Expression"
+                              }
+                            }
+                          },
+                          "fieldList": [
+                            "exists",
+                            "size"
+                          ],
+                          "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "enablePartitionDiscovery": false
+                          },
+                          "formatSettings": {
+                            "type": "ParquetReadSettings"
+                          }
+                        }
+                      },
+                      {
+                        "name": "SP_Update_SFTP_Snapshot_EXCEL",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "Validate_Copy_EXCEL_To_Raw_Output",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "userProperties": [],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_update_watermark",
+                          "storedProcedureParameters": {
+                            "source_type": {
+                              "value": {
+                                "value": "SFTP",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "source_name": {
+                              "value": {
+                                "value": "Azure",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "schema_name": {
+                              "value": {
+                                "value": "@pipeline().parameters.pSourceFolder",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "table_name": {
+                              "value": {
+                                "value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "watermark_column": {
+                              "value": {
+                                "value": "SNAPSHOT_LOAD_UTC",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "last_load_value": {
+                              "value": {
+                                "value": "@utcNow()",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
                       }
                     ]
                   }
