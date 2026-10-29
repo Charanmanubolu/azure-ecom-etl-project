@@ -1,304 +1,444 @@
 {
-	"name": "PL1_Master",
-	"properties": {
-		"description": "Metadata-driven orchestration for Azure E-commerce ETL source pipelines.",
-		"activities": [
-			{
-				"name": "LKUP_Master_Job_Metadata",
-				"type": "Lookup",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 1,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": "EXEC dbo.ecom_get_master_job_metadata;",
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "DS_AzureSQLDB",
-						"type": "DatasetReference"
-					},
-					"firstRowOnly": false
-				}
-			},
-			{
-				"name": "FE_Process_Jobs",
-				"type": "ForEach",
-				"dependsOn": [
-					{
-						"activity": "LKUP_Master_Job_Metadata",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"items": {
-						"value": "@activity('LKUP_Master_Job_Metadata').output.value",
-						"type": "Expression"
-					},
-					"isSequential": true,
-					"activities": [
-						{
-							"name": "SW_Route_Source_Type",
-							"type": "Switch",
-							"dependsOn": [],
-							"userProperties": [],
-							"typeProperties": {
-								"on": {
-									"value": "@toUpper(item().SourceType)",
-									"type": "Expression"
-								},
-								"cases": [
-									{
-										"value": "SQL",
-										"activities": [
-											{
-												"name": "EXEC_PL_SQL_TO_RAW",
-												"type": "ExecutePipeline",
-												"dependsOn": [],
-												"policy": {
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"pipeline": {
-														"referenceName": "PL_SQL_TO_RAW",
-														"type": "PipelineReference"
-													},
-													"waitOnCompletion": true
-												}
-											}
-										]
-									},
-									{
-										"value": "RESTAPI",
-										"activities": [
-											{
-												"name": "EXEC_PL_RESTAPI_TO_RAW",
-												"type": "ExecutePipeline",
-												"dependsOn": [],
-												"policy": {
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"pipeline": {
-														"referenceName": "PL_RESTAPI_TO_RAW",
-														"type": "PipelineReference"
-													},
-													"waitOnCompletion": true,
-													"parameters": {
-														"pApiUrl": {
-															"value": "@concat(item().BaseURL,item().RelativeURL)",
-															"type": "Expression"
-														},
-														"pEntityName": {
-															"value": "@item().TargetEntity",
-															"type": "Expression"
-														}
-													}
-												}
-											}
-										]
-									},
-									{
-										"value": "CSV",
-										"activities": [
-											{
-												"name": "EXEC_PL_CSV_TO_RAW",
-												"type": "ExecutePipeline",
-												"dependsOn": [],
-												"policy": {
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"pipeline": {
-														"referenceName": "PL_CSV_TO_RAW",
-														"type": "PipelineReference"
-													},
-													"waitOnCompletion": true,
-													"parameters": {
-														"pSourceFolder": {
-															"value": "@item().SourceDirectory",
-															"type": "Expression"
-														}
-													}
-												}
-											}
-										]
-									},
-									{
-										"value": "EXCEL",
-										"activities": [
-											{
-												"name": "EXEC_PL_EXCEL_TO_RAW",
-												"type": "ExecutePipeline",
-												"dependsOn": [],
-												"policy": {
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"pipeline": {
-														"referenceName": "PL_EXCEL_TO_RAW",
-														"type": "PipelineReference"
-													},
-													"waitOnCompletion": true,
-													"parameters": {
-														"pSourceFolder": {
-															"value": "@item().SourceDirectory",
-															"type": "Expression"
-														}
-													}
-												}
-											}
-										]
-									},
-									{
-										"value": "BULK",
-										"activities": [
-											{
-												"name": "EXEC_PL_BULK_TO_RAW",
-												"type": "ExecutePipeline",
-												"dependsOn": [],
-												"policy": {
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"pipeline": {
-														"referenceName": "PL_BULK_TO_RAW",
-														"type": "PipelineReference"
-													},
-													"waitOnCompletion": true,
-													"parameters": {
-														"pSourceFolder": {
-															"value": "@item().SourceDirectory",
-															"type": "Expression"
-														}
-													}
-												}
-											}
-										]
-									},
-									{
-										"value": "SFTP",
-										"activities": [
-											{
-												"name": "EXEC_PL_SFTP_TO_RAW",
-												"type": "ExecutePipeline",
-												"dependsOn": [],
-												"policy": {
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"pipeline": {
-														"referenceName": "PL_SFTP_TO_RAW",
-														"type": "PipelineReference"
-													},
-													"waitOnCompletion": true,
-													"parameters": {
-														"pSourceFolder": {
-															"value": "@item().SourceDirectory",
-															"type": "Expression"
-														}
-													}
-												}
-											}
-										]
-									},
-									{
-										"value": "JSON",
-										"activities": [
-											{
-												"name": "EXEC_PL_JSON_TO_RAW",
-												"type": "ExecutePipeline",
-												"dependsOn": [],
-												"policy": {
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"pipeline": {
-														"referenceName": "PL_JSON_TO_RAW",
-														"type": "PipelineReference"
-													},
-													"waitOnCompletion": true,
-													"parameters": {
-														"pSourceDirectory": {
-															"value": "@item().SourceDirectory",
-															"type": "Expression"
-														}
-													}
-												}
-											}
-										]
-									},
-									{
-										"value": "SNOWFLAKE",
-										"activities": [
-											{
-												"name": "EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
-												"type": "ExecutePipeline",
-												"dependsOn": [],
-												"policy": {
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"pipeline": {
-														"referenceName": "PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
-														"type": "PipelineReference"
-													},
-													"waitOnCompletion": true,
-													"parameters": {
-														"DatabaseName": {
-															"value": "@if(empty(item().SourceDatabase),'DBAZURESNOW',item().SourceDatabase)",
-															"type": "Expression"
-														}
-													}
-												}
-											}
-										]
-									}
-								],
-								"defaultActivities": [
-									{
-										"name": "FAIL_Unsupported_Source_Type",
-										"type": "Fail",
-										"dependsOn": [],
-										"userProperties": [],
-										"typeProperties": {
-											"message": {
-												"value": "@concat('Unsupported or missing SourceType for jobid: ',string(item().jobid))",
-												"type": "Expression"
-											},
-											"errorCode": "UNSUPPORTED_SOURCE_TYPE"
-										}
-									}
-								]
-							}
-						}
-					]
-				}
-			}
-		],
-		"annotations": [
-			"Metadata-driven orchestration",
-			"Source-type routing",
-			"Sequential job execution"
-		]
-	}
+  "name": "PL1_Master",
+  "properties": {
+    "description": "Metadata-driven orchestration for Azure E-commerce ETL source pipelines.",
+    "activities": [
+      {
+        "name": "LKUP_Master_Job_Metadata",
+        "type": "Lookup",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "source": {
+            "type": "AzureSqlSource",
+            "sqlReaderQuery": "EXEC dbo.ecom_get_master_job_metadata;",
+            "queryTimeout": "02:00:00",
+            "partitionOption": "None"
+          },
+          "dataset": {
+            "referenceName": "DS_AzureSQLDB",
+            "type": "DatasetReference"
+          },
+          "firstRowOnly": false
+        }
+      },
+      {
+        "name": "FE_Process_Jobs",
+        "type": "ForEach",
+        "dependsOn": [
+          {
+            "activity": "LKUP_Master_Job_Metadata",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "userProperties": [],
+        "typeProperties": {
+          "items": {
+            "value": "@activity('LKUP_Master_Job_Metadata').output.value",
+            "type": "Expression"
+          },
+          "isSequential": true,
+          "activities": [
+            {
+              "name": "SP_Start_Job_Log",
+              "type": "SqlServerStoredProcedure",
+              "dependsOn": [],
+              "policy": {
+                "timeout": "0.00:05:00",
+                "retry": 1,
+                "retryIntervalInSeconds": 15,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "userProperties": [],
+              "typeProperties": {
+                "storedProcedureName": "dbo.ecom_start_log_entry",
+                "storedProcedureParameters": {
+                  "jobid": {
+                    "value": {
+                      "value": "@int(item().jobid)",
+                      "type": "Expression"
+                    },
+                    "type": "Int"
+                  },
+                  "pipeline_id": {
+                    "value": {
+                      "value": "@pipeline().Pipeline",
+                      "type": "Expression"
+                    },
+                    "type": "String"
+                  }
+                }
+              },
+              "linkedServiceName": {
+                "referenceName": "LS_AzureSQLDB",
+                "type": "LinkedServiceReference"
+              }
+            },
+            {
+              "name": "SW_Route_Source_Type",
+              "type": "Switch",
+              "dependsOn": [
+                {
+                  "activity": "SP_Start_Job_Log",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "userProperties": [],
+              "typeProperties": {
+                "on": {
+                  "value": "@toUpper(item().SourceType)",
+                  "type": "Expression"
+                },
+                "cases": [
+                  {
+                    "value": "SQL",
+                    "activities": [
+                      {
+                        "name": "EXEC_PL_SQL_TO_RAW",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [],
+                        "policy": {
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "pipeline": {
+                            "referenceName": "PL_SQL_TO_RAW",
+                            "type": "PipelineReference"
+                          },
+                          "waitOnCompletion": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "value": "RESTAPI",
+                    "activities": [
+                      {
+                        "name": "EXEC_PL_RESTAPI_TO_RAW",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [],
+                        "policy": {
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "pipeline": {
+                            "referenceName": "PL_RESTAPI_TO_RAW",
+                            "type": "PipelineReference"
+                          },
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "pApiUrl": {
+                              "value": "@concat(item().BaseURL,item().RelativeURL)",
+                              "type": "Expression"
+                            },
+                            "pEntityName": {
+                              "value": "@item().TargetEntity",
+                              "type": "Expression"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "value": "CSV",
+                    "activities": [
+                      {
+                        "name": "EXEC_PL_CSV_TO_RAW",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [],
+                        "policy": {
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "pipeline": {
+                            "referenceName": "PL_CSV_TO_RAW",
+                            "type": "PipelineReference"
+                          },
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "pSourceFolder": {
+                              "value": "@item().SourceDirectory",
+                              "type": "Expression"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "value": "EXCEL",
+                    "activities": [
+                      {
+                        "name": "EXEC_PL_EXCEL_TO_RAW",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [],
+                        "policy": {
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "pipeline": {
+                            "referenceName": "PL_EXCEL_TO_RAW",
+                            "type": "PipelineReference"
+                          },
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "pSourceFolder": {
+                              "value": "@item().SourceDirectory",
+                              "type": "Expression"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "value": "BULK",
+                    "activities": [
+                      {
+                        "name": "EXEC_PL_BULK_TO_RAW",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [],
+                        "policy": {
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "pipeline": {
+                            "referenceName": "PL_BULK_TO_RAW",
+                            "type": "PipelineReference"
+                          },
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "pSourceFolder": {
+                              "value": "@item().SourceDirectory",
+                              "type": "Expression"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "value": "SFTP",
+                    "activities": [
+                      {
+                        "name": "EXEC_PL_SFTP_TO_RAW",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [],
+                        "policy": {
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "pipeline": {
+                            "referenceName": "PL_SFTP_TO_RAW",
+                            "type": "PipelineReference"
+                          },
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "pSourceFolder": {
+                              "value": "@item().SourceDirectory",
+                              "type": "Expression"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "value": "JSON",
+                    "activities": [
+                      {
+                        "name": "EXEC_PL_JSON_TO_RAW",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [],
+                        "policy": {
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "pipeline": {
+                            "referenceName": "PL_JSON_TO_RAW",
+                            "type": "PipelineReference"
+                          },
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "pSourceDirectory": {
+                              "value": "@item().SourceDirectory",
+                              "type": "Expression"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "value": "SNOWFLAKE",
+                    "activities": [
+                      {
+                        "name": "EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [],
+                        "policy": {
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "pipeline": {
+                            "referenceName": "PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
+                            "type": "PipelineReference"
+                          },
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "DatabaseName": {
+                              "value": "@if(empty(item().SourceDatabase),'DBAZURESNOW',item().SourceDatabase)",
+                              "type": "Expression"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "defaultActivities": [
+                  {
+                    "name": "FAIL_Unsupported_Source_Type",
+                    "type": "Fail",
+                    "dependsOn": [],
+                    "userProperties": [],
+                    "typeProperties": {
+                      "message": {
+                        "value": "@concat('Unsupported or missing SourceType for jobid: ',string(item().jobid))",
+                        "type": "Expression"
+                      },
+                      "errorCode": "UNSUPPORTED_SOURCE_TYPE"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "SP_End_Job_Log_Success",
+              "type": "SqlServerStoredProcedure",
+              "dependsOn": [
+                {
+                  "activity": "SW_Route_Source_Type",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "policy": {
+                "timeout": "0.00:05:00",
+                "retry": 1,
+                "retryIntervalInSeconds": 15,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "userProperties": [],
+              "typeProperties": {
+                "storedProcedureName": "dbo.ecom_end_log_entry",
+                "storedProcedureParameters": {
+                  "jobid": {
+                    "value": {
+                      "value": "@int(item().jobid)",
+                      "type": "Expression"
+                    },
+                    "type": "Int"
+                  },
+                  "pipeline_id": {
+                    "value": {
+                      "value": "@pipeline().Pipeline",
+                      "type": "Expression"
+                    },
+                    "type": "String"
+                  },
+                  "error": {
+                    "value": "",
+                    "type": "String"
+                  }
+                }
+              },
+              "linkedServiceName": {
+                "referenceName": "LS_AzureSQLDB",
+                "type": "LinkedServiceReference"
+              }
+            },
+            {
+              "name": "SP_End_Job_Log_Failure",
+              "type": "SqlServerStoredProcedure",
+              "dependsOn": [
+                {
+                  "activity": "SW_Route_Source_Type",
+                  "dependencyConditions": [
+                    "Failed"
+                  ]
+                }
+              ],
+              "policy": {
+                "timeout": "0.00:05:00",
+                "retry": 1,
+                "retryIntervalInSeconds": 15,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "userProperties": [],
+              "typeProperties": {
+                "storedProcedureName": "dbo.ecom_end_log_entry",
+                "storedProcedureParameters": {
+                  "jobid": {
+                    "value": {
+                      "value": "@int(item().jobid)",
+                      "type": "Expression"
+                    },
+                    "type": "Int"
+                  },
+                  "pipeline_id": {
+                    "value": {
+                      "value": "@pipeline().Pipeline",
+                      "type": "Expression"
+                    },
+                    "type": "String"
+                  },
+                  "error": {
+                    "value": {
+                      "value": "@string(activity('SW_Route_Source_Type').error.message)",
+                      "type": "Expression"
+                    },
+                    "type": "String"
+                  }
+                }
+              },
+              "linkedServiceName": {
+                "referenceName": "LS_AzureSQLDB",
+                "type": "LinkedServiceReference"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "annotations": [
+      "Metadata-driven orchestration",
+      "Source-type routing",
+      "Sequential job execution"
+    ]
+  }
 }
