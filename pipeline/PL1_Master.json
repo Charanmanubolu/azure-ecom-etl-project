@@ -483,7 +483,7 @@
                   },
                   "error": {
                     "value": {
-                      "value": "@string(activity('SW_Route_Source_Type').error.message)",
+                      "value": "@if(equals(toUpper(item().SourceType),'SQL'),string(activity('EXEC_PL_SQL_TO_RAW').error.message),if(equals(toUpper(item().SourceType),'RESTAPI'),string(activity('EXEC_PL_RESTAPI_TO_RAW').error.message),if(equals(toUpper(item().SourceType),'CSV'),string(activity('EXEC_PL_CSV_TO_RAW').error.message),if(equals(toUpper(item().SourceType),'EXCEL'),string(activity('EXEC_PL_EXCEL_TO_RAW').error.message),if(equals(toUpper(item().SourceType),'BULK'),string(activity('EXEC_PL_BULK_TO_RAW').error.message),if(equals(toUpper(item().SourceType),'SFTP'),string(activity('EXEC_PL_SFTP_TO_RAW').error.message),if(equals(toUpper(item().SourceType),'JSON'),string(activity('EXEC_PL_JSON_TO_RAW').error.message),if(equals(toUpper(item().SourceType),'SNOWFLAKE'),string(activity('EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR').error.message),string(activity('EXEC_PL_Test_Intentional_Failure').error.message)))))))))",
                       "type": "Expression"
                     },
                     "type": "String"
@@ -497,20 +497,23 @@
                   },
                   "activity_name": {
                     "value": {
-                      "value": "SW_Route_Source_Type",
+                      "value": "@if(equals(toUpper(item().SourceType),'SQL'),'EXEC_PL_SQL_TO_RAW',if(equals(toUpper(item().SourceType),'RESTAPI'),'EXEC_PL_RESTAPI_TO_RAW',if(equals(toUpper(item().SourceType),'CSV'),'EXEC_PL_CSV_TO_RAW',if(equals(toUpper(item().SourceType),'EXCEL'),'EXEC_PL_EXCEL_TO_RAW',if(equals(toUpper(item().SourceType),'BULK'),'EXEC_PL_BULK_TO_RAW',if(equals(toUpper(item().SourceType),'SFTP'),'EXEC_PL_SFTP_TO_RAW',if(equals(toUpper(item().SourceType),'JSON'),'EXEC_PL_JSON_TO_RAW',if(equals(toUpper(item().SourceType),'SNOWFLAKE'),'EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR','EXEC_PL_Test_Intentional_Failure'))))))))",
                       "type": "Expression"
                     },
                     "type": "String"
                   },
                   "error_code": {
                     "value": {
-                      "value": "CHILD_PIPELINE_FAILED",
+                      "value": "@if(equals(toUpper(item().SourceType),'SQL'),string(activity('EXEC_PL_SQL_TO_RAW').error.errorCode),if(equals(toUpper(item().SourceType),'RESTAPI'),string(activity('EXEC_PL_RESTAPI_TO_RAW').error.errorCode),if(equals(toUpper(item().SourceType),'CSV'),string(activity('EXEC_PL_CSV_TO_RAW').error.errorCode),if(equals(toUpper(item().SourceType),'EXCEL'),string(activity('EXEC_PL_EXCEL_TO_RAW').error.errorCode),if(equals(toUpper(item().SourceType),'BULK'),string(activity('EXEC_PL_BULK_TO_RAW').error.errorCode),if(equals(toUpper(item().SourceType),'SFTP'),string(activity('EXEC_PL_SFTP_TO_RAW').error.errorCode),if(equals(toUpper(item().SourceType),'JSON'),string(activity('EXEC_PL_JSON_TO_RAW').error.errorCode),if(equals(toUpper(item().SourceType),'SNOWFLAKE'),string(activity('EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR').error.errorCode),string(activity('EXEC_PL_Test_Intentional_Failure').error.errorCode)))))))))",
                       "type": "Expression"
                     },
                     "type": "String"
                   },
                   "child_run_id": {
-                    "value": null,
+                    "value": {
+                      "value": "@if(equals(toUpper(item().SourceType),'SQL'),string(activity('EXEC_PL_SQL_TO_RAW').output.pipelineRunId),if(equals(toUpper(item().SourceType),'RESTAPI'),string(activity('EXEC_PL_RESTAPI_TO_RAW').output.pipelineRunId),if(equals(toUpper(item().SourceType),'CSV'),string(activity('EXEC_PL_CSV_TO_RAW').output.pipelineRunId),if(equals(toUpper(item().SourceType),'EXCEL'),string(activity('EXEC_PL_EXCEL_TO_RAW').output.pipelineRunId),if(equals(toUpper(item().SourceType),'BULK'),string(activity('EXEC_PL_BULK_TO_RAW').output.pipelineRunId),if(equals(toUpper(item().SourceType),'SFTP'),string(activity('EXEC_PL_SFTP_TO_RAW').output.pipelineRunId),if(equals(toUpper(item().SourceType),'JSON'),string(activity('EXEC_PL_JSON_TO_RAW').output.pipelineRunId),if(equals(toUpper(item().SourceType),'SNOWFLAKE'),string(activity('EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR').output.pipelineRunId),string(activity('EXEC_PL_Test_Intentional_Failure').output.pipelineRunId)))))))))",
+                      "type": "Expression"
+                    },
                     "type": "String"
                   }
                 }
