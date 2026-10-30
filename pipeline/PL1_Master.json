@@ -325,6 +325,27 @@
                         }
                       }
                     ]
+                  },
+                  {
+                    "value": "TESTFAIL",
+                    "activities": [
+                      {
+                        "name": "EXEC_PL_Test_Intentional_Failure",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [],
+                        "policy": {
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "pipeline": {
+                            "referenceName": "PL_Test_Intentional_Failure",
+                            "type": "PipelineReference"
+                          },
+                          "waitOnCompletion": true
+                        }
+                      }
+                    ]
                   }
                 ],
                 "defaultActivities": [
