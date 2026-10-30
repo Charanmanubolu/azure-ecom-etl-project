@@ -89,6 +89,532 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/PL1_Master')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Metadata-driven orchestration for Azure E-commerce ETL source pipelines.",
+				"activities": [
+					{
+						"name": "LKUP_Master_Job_Metadata",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "EXEC dbo.ecom_get_master_job_metadata;",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_AzureSQLDB",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "FE_Process_Jobs",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "LKUP_Master_Job_Metadata",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('LKUP_Master_Job_Metadata').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 3,
+							"activities": [
+								{
+									"name": "SP_Start_Job_Log",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.00:05:00",
+										"retry": 1,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "dbo.ecom_start_log_entry",
+										"storedProcedureParameters": {
+											"jobid": {
+												"value": {
+													"value": "@int(item().jobid)",
+													"type": "Expression"
+												},
+												"type": "Int"
+											},
+											"pipeline_id": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_AzureSQLDB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "SW_Route_Source_Type",
+									"type": "Switch",
+									"dependsOn": [
+										{
+											"activity": "SP_Start_Job_Log",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"on": {
+											"value": "@toUpper(item().SourceType)",
+											"type": "Expression"
+										},
+										"cases": [
+											{
+												"value": "SQL",
+												"activities": [
+													{
+														"name": "EXEC_PL_SQL_TO_RAW",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_SQL_TO_RAW",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"pBatchStartDate": {
+																	"value": "@pipeline().parameters.pBatchStartDate",
+																	"type": "Expression"
+																},
+																"pBatchEndDate": {
+																	"value": "@pipeline().parameters.pBatchEndDate",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "RESTAPI",
+												"activities": [
+													{
+														"name": "EXEC_PL_RESTAPI_TO_RAW",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_RESTAPI_TO_RAW",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"pApiUrl": {
+																	"value": "@concat(item().BaseURL,item().RelativeURL)",
+																	"type": "Expression"
+																},
+																"pEntityName": {
+																	"value": "@item().TargetEntity",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "CSV",
+												"activities": [
+													{
+														"name": "EXEC_PL_CSV_TO_RAW",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_CSV_TO_RAW",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"pSourceFolder": {
+																	"value": "@item().SourceDirectory",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "EXCEL",
+												"activities": [
+													{
+														"name": "EXEC_PL_EXCEL_TO_RAW",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_EXCEL_TO_RAW",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"pSourceFolder": {
+																	"value": "@item().SourceDirectory",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "BULK",
+												"activities": [
+													{
+														"name": "EXEC_PL_BULK_TO_RAW",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_BULK_TO_RAW",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"pSourceFolder": {
+																	"value": "@item().SourceDirectory",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "SFTP",
+												"activities": [
+													{
+														"name": "EXEC_PL_SFTP_TO_RAW",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_SFTP_TO_RAW",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"pSourceFolder": {
+																	"value": "@item().SourceDirectory",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "JSON",
+												"activities": [
+													{
+														"name": "EXEC_PL_JSON_TO_RAW",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_JSON_TO_RAW",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"pSourceDirectory": {
+																	"value": "@item().SourceDirectory",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "SNOWFLAKE",
+												"activities": [
+													{
+														"name": "EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"DatabaseName": {
+																	"value": "@if(empty(item().SourceDatabase),'DBAZURESNOW',item().SourceDatabase)",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "TESTFAIL",
+												"activities": [
+													{
+														"name": "EXEC_PL_Test_Intentional_Failure",
+														"type": "ExecutePipeline",
+														"dependsOn": [],
+														"policy": {
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "PL_Test_Intentional_Failure",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {}
+														}
+													}
+												]
+											}
+										],
+										"defaultActivities": [
+											{
+												"name": "FAIL_Unsupported_Source_Type",
+												"type": "Fail",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('Unsupported or missing SourceType for jobid: ',string(item().jobid))",
+														"type": "Expression"
+													},
+													"errorCode": "UNSUPPORTED_SOURCE_TYPE"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "SP_End_Job_Log_Success",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "SW_Route_Source_Type",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.00:05:00",
+										"retry": 1,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "dbo.ecom_end_log_entry",
+										"storedProcedureParameters": {
+											"jobid": {
+												"value": {
+													"value": "@int(item().jobid)",
+													"type": "Expression"
+												},
+												"type": "Int"
+											},
+											"pipeline_id": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"error": {
+												"value": null,
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_AzureSQLDB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "SP_End_Job_Log_Failure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "SW_Route_Source_Type",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.00:05:00",
+										"retry": 1,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "dbo.ecom_end_log_entry",
+										"storedProcedureParameters": {
+											"jobid": {
+												"value": {
+													"value": "@int(item().jobid)",
+													"type": "Expression"
+												},
+												"type": "Int"
+											},
+											"pipeline_id": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"error": {
+												"value": {
+													"value": "@string(activity('SW_Route_Source_Type').error.message)",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_AzureSQLDB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "FAIL_Child_Job",
+									"type": "Fail",
+									"dependsOn": [
+										{
+											"activity": "SP_End_Job_Log_Failure",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"message": {
+											"value": "@concat('Child pipeline failed for jobid: ',string(item().jobid),'. Check dbo.ecom_tbl_log_dtls for details.')",
+											"type": "Expression"
+										},
+										"errorCode": "CHILD_PIPELINE_FAILED"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"pBatchStartDate": {
+						"type": "string",
+						"defaultValue": "2016-01-01"
+					},
+					"pBatchEndDate": {
+						"type": "string",
+						"defaultValue": "2017-01-01"
+					}
+				},
+				"annotations": [
+					"Metadata-driven orchestration",
+					"Source-type routing",
+					"Sequential job execution"
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_AzureSQLDB')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQLDB')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_SQL_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_RESTAPI_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_CSV_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_EXCEL_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_BULK_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_SFTP_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_JSON_TO_RAW')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_SNOWFLAKE_METADATA_ORCHESTRATOR')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_Test_Intentional_Failure')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/PL_BULK_TO_RAW')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -170,7 +696,8 @@
 								"value": "@activity('Filter_Bulk_CSV_Files').output.value",
 								"type": "Expression"
 							},
-							"isSequential": true,
+							"isSequential": false,
+							"batchCount": 3,
 							"activities": [
 								{
 									"name": "Copy_Current_CSV_To_Raw",
@@ -334,6 +861,77 @@
 											}
 										]
 									}
+								},
+								{
+									"name": "SP_Update_Bulk_Snapshot",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "IF_Output_Exists",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.00:05:00",
+										"retry": 1,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "dbo.ecom_update_watermark",
+										"storedProcedureParameters": {
+											"source_type": {
+												"value": {
+													"value": "BULK",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"source_name": {
+												"value": {
+													"value": "Azure",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"schema_name": {
+												"value": {
+													"value": "@pipeline().parameters.pSourceFolder",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"table_name": {
+												"value": {
+													"value": "@replace(toLower(item().name),'.csv','')",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"watermark_column": {
+												"value": {
+													"value": "SNAPSHOT_LOAD_UTC",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"last_load_value": {
+												"value": {
+													"value": "@utcNow()",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_AzureSQLDB",
+										"type": "LinkedServiceReference"
+									}
 								}
 							]
 						}
@@ -353,7 +951,8 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_BLOB_FOLDER')]",
 				"[concat(variables('factoryId'), '/datasets/DS_BULK_CSV')]",
-				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]"
+				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQLDB')]"
 			]
 		},
 		{
@@ -438,7 +1037,8 @@
 								"value": "@activity('FL_Filter_CSV_Files').output.value",
 								"type": "Expression"
 							},
-							"isSequential": true,
+							"isSequential": false,
+							"batchCount": 3,
 							"activities": [
 								{
 									"name": "CP_CSV_TO_RAW",
@@ -554,6 +1154,77 @@
 											}
 										]
 									}
+								},
+								{
+									"name": "SP_Update_CSV_Snapshot",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "IF_CSV_ROWS_COPIED",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.00:05:00",
+										"retry": 1,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "dbo.ecom_update_watermark",
+										"storedProcedureParameters": {
+											"source_type": {
+												"value": {
+													"value": "CSV",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"source_name": {
+												"value": {
+													"value": "Azure",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"schema_name": {
+												"value": {
+													"value": "@pipeline().parameters.pSourceFolder",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"table_name": {
+												"value": {
+													"value": "@replace(toLower(item().name),'.csv','')",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"watermark_column": {
+												"value": {
+													"value": "SNAPSHOT_LOAD_UTC",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"last_load_value": {
+												"value": {
+													"value": "@utcNow()",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_AzureSQLDB",
+										"type": "LinkedServiceReference"
+									}
 								}
 							]
 						}
@@ -573,7 +1244,8 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_BLOB_FOLDER')]",
 				"[concat(variables('factoryId'), '/datasets/DS_CSV')]",
-				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]"
+				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQLDB')]"
 			]
 		},
 		{
@@ -658,7 +1330,8 @@
 								"value": "@activity('FL_Filter_Excel_Files').output.value",
 								"type": "Expression"
 							},
-							"isSequential": true,
+							"isSequential": false,
+							"batchCount": 3,
 							"activities": [
 								{
 									"name": "CP_Excel_To_Raw",
@@ -771,6 +1444,77 @@
 											}
 										]
 									}
+								},
+								{
+									"name": "SP_Update_Excel_Snapshot",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "IF_EXCEL_ROWS_COPIED",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.00:05:00",
+										"retry": 1,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "dbo.ecom_update_watermark",
+										"storedProcedureParameters": {
+											"source_type": {
+												"value": {
+													"value": "EXCEL",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"source_name": {
+												"value": {
+													"value": "Azure",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"schema_name": {
+												"value": {
+													"value": "@pipeline().parameters.pSourceFolder",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"table_name": {
+												"value": {
+													"value": "@replace(replace(replace(toLower(item().name),'.xlsx',''),'.xls',''),'_dataset','')",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"watermark_column": {
+												"value": {
+													"value": "SNAPSHOT_LOAD_UTC",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"last_load_value": {
+												"value": {
+													"value": "@utcNow()",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_AzureSQLDB",
+										"type": "LinkedServiceReference"
+									}
 								}
 							]
 						}
@@ -790,7 +1534,8 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_BLOB_FOLDER')]",
 				"[concat(variables('factoryId'), '/datasets/DS_EXCEL')]",
-				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]"
+				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQLDB')]"
 			]
 		},
 		{
@@ -907,7 +1652,8 @@
 								"value": "@activity('Filter_JSON_Files').output.value",
 								"type": "Expression"
 							},
-							"isSequential": true,
+							"isSequential": false,
+							"batchCount": 3,
 							"activities": [
 								{
 									"name": "Get_JSON_File_Metadata",
@@ -1058,6 +1804,77 @@
 														}
 													}
 												]
+											},
+											{
+												"name": "SP_Update_JSON_Snapshot",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "Copy_JSON_To_Parquet",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.00:05:00",
+													"retry": 1,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "dbo.ecom_update_watermark",
+													"storedProcedureParameters": {
+														"source_type": {
+															"value": {
+																"value": "JSON",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"source_name": {
+															"value": {
+																"value": "Azure",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema_name": {
+															"value": {
+																"value": "@pipeline().parameters.pSourceDirectory",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"table_name": {
+															"value": {
+																"value": "@replace(toLower(item().name),'.json','')",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark_column": {
+															"value": {
+																"value": "SNAPSHOT_LOAD_UTC",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"last_load_value": {
+															"value": {
+																"value": "@utcNow()",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "LS_AzureSQLDB",
+													"type": "LinkedServiceReference"
+												}
 											}
 										]
 									}
@@ -1087,7 +1904,8 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_BLOB_FOLDER')]",
 				"[concat(variables('factoryId'), '/datasets/DS_Json')]",
-				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]"
+				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQLDB')]"
 			]
 		},
 		{
@@ -1174,7 +1992,7 @@
 								"type": "DatasetReference",
 								"parameters": {
 									"EntityName": {
-										"value": "@pipeline().parameters.pEntityName",
+										"value": "@toLower(pipeline().parameters.pEntityName)",
 										"type": "Expression"
 									},
 									"YEAR": {
@@ -1223,6 +2041,77 @@
 								}
 							]
 						}
+					},
+					{
+						"name": "SP_Update_RESTAPI_Snapshot",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "IF_ROWS_COPIED",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:05:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "dbo.ecom_update_watermark",
+							"storedProcedureParameters": {
+								"source_type": {
+									"value": {
+										"value": "RESTAPI",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"source_name": {
+									"value": {
+										"value": "REST",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"schema_name": {
+									"value": {
+										"value": "api",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"table_name": {
+									"value": {
+										"value": "@toLower(pipeline().parameters.pEntityName)",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"watermark_column": {
+									"value": {
+										"value": "SNAPSHOT_LOAD_UTC",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"last_load_value": {
+									"value": {
+										"value": "@utcNow()",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_AzureSQLDB",
+							"type": "LinkedServiceReference"
+						}
 					}
 				],
 				"policy": {
@@ -1231,7 +2120,7 @@
 				"parameters": {
 					"pEntityName": {
 						"type": "String",
-						"defaultValue": "retool_data"
+						"defaultValue": "product_category_name_translation"
 					},
 					"pApiUrl": {
 						"type": "String",
@@ -1242,7 +2131,8 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_REST_API')]",
-				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]"
+				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQLDB')]"
 			]
 		},
 		{
@@ -1327,7 +2217,8 @@
 								"value": "@activity('Filter_Supported_Files').output.value",
 								"type": "Expression"
 							},
-							"isSequential": true,
+							"isSequential": false,
+							"batchCount": 3,
 							"activities": [
 								{
 									"name": "Route_By_File_Type",
@@ -1399,7 +2290,7 @@
 																"type": "DatasetReference",
 																"parameters": {
 																	"EntityName": {
-																		"value": "@substring(item().name,0,lastIndexOf(item().name,'.'))",
+																		"value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
 																		"type": "Expression"
 																	},
 																	"YEAR": {
@@ -1417,6 +2308,125 @@
 																}
 															}
 														]
+													},
+													{
+														"name": "Validate_Copy_CSV_To_Raw_Output",
+														"type": "GetMetadata",
+														"dependsOn": [
+															{
+																"activity": "Copy_CSV_To_Raw",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.00:05:00",
+															"retry": 1,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"dataset": {
+																"referenceName": "DS_RAW_PARQUET",
+																"type": "DatasetReference",
+																"parameters": {
+																	"EntityName": {
+																		"value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
+																		"type": "Expression"
+																	},
+																	"YEAR": {
+																		"value": "@formatDateTime(utcNow(),'yyyy')",
+																		"type": "Expression"
+																	},
+																	"MONTH": {
+																		"value": "@formatDateTime(utcNow(),'MM')",
+																		"type": "Expression"
+																	},
+																	"DAY": {
+																		"value": "@formatDateTime(utcNow(),'dd')",
+																		"type": "Expression"
+																	}
+																}
+															},
+															"fieldList": [
+																"exists",
+																"size"
+															]
+														}
+													},
+													{
+														"name": "SP_Update_SFTP_Snapshot_CSV",
+														"type": "SqlServerStoredProcedure",
+														"dependsOn": [
+															{
+																"activity": "Validate_Copy_CSV_To_Raw_Output",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.00:05:00",
+															"retry": 1,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"storedProcedureName": "dbo.ecom_update_watermark",
+															"storedProcedureParameters": {
+																"source_type": {
+																	"value": {
+																		"value": "SFTP",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"source_name": {
+																	"value": {
+																		"value": "Azure",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"schema_name": {
+																	"value": {
+																		"value": "@pipeline().parameters.pSourceFolder",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"table_name": {
+																	"value": {
+																		"value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"watermark_column": {
+																	"value": {
+																		"value": "SNAPSHOT_LOAD_UTC",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"last_load_value": {
+																	"value": {
+																		"value": "@utcNow()",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																}
+															}
+														},
+														"linkedServiceName": {
+															"referenceName": "LS_AzureSQLDB",
+															"type": "LinkedServiceReference"
+														}
 													}
 												]
 											},
@@ -1479,7 +2489,7 @@
 																"type": "DatasetReference",
 																"parameters": {
 																	"EntityName": {
-																		"value": "@substring(item().name,0,lastIndexOf(item().name,'.'))",
+																		"value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
 																		"type": "Expression"
 																	},
 																	"YEAR": {
@@ -1497,6 +2507,125 @@
 																}
 															}
 														]
+													},
+													{
+														"name": "Validate_Copy_JSON_To_Raw_Output",
+														"type": "GetMetadata",
+														"dependsOn": [
+															{
+																"activity": "Copy_JSON_To_Raw",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.00:05:00",
+															"retry": 1,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"dataset": {
+																"referenceName": "DS_RAW_PARQUET",
+																"type": "DatasetReference",
+																"parameters": {
+																	"EntityName": {
+																		"value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
+																		"type": "Expression"
+																	},
+																	"YEAR": {
+																		"value": "@formatDateTime(utcNow(),'yyyy')",
+																		"type": "Expression"
+																	},
+																	"MONTH": {
+																		"value": "@formatDateTime(utcNow(),'MM')",
+																		"type": "Expression"
+																	},
+																	"DAY": {
+																		"value": "@formatDateTime(utcNow(),'dd')",
+																		"type": "Expression"
+																	}
+																}
+															},
+															"fieldList": [
+																"exists",
+																"size"
+															]
+														}
+													},
+													{
+														"name": "SP_Update_SFTP_Snapshot_JSON",
+														"type": "SqlServerStoredProcedure",
+														"dependsOn": [
+															{
+																"activity": "Validate_Copy_JSON_To_Raw_Output",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.00:05:00",
+															"retry": 1,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"storedProcedureName": "dbo.ecom_update_watermark",
+															"storedProcedureParameters": {
+																"source_type": {
+																	"value": {
+																		"value": "SFTP",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"source_name": {
+																	"value": {
+																		"value": "Azure",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"schema_name": {
+																	"value": {
+																		"value": "@pipeline().parameters.pSourceFolder",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"table_name": {
+																	"value": {
+																		"value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"watermark_column": {
+																	"value": {
+																		"value": "SNAPSHOT_LOAD_UTC",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"last_load_value": {
+																	"value": {
+																		"value": "@utcNow()",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																}
+															}
+														},
+														"linkedServiceName": {
+															"referenceName": "LS_AzureSQLDB",
+															"type": "LinkedServiceReference"
+														}
 													}
 												]
 											},
@@ -1556,7 +2685,7 @@
 																"type": "DatasetReference",
 																"parameters": {
 																	"EntityName": {
-																		"value": "@substring(item().name,0,lastIndexOf(item().name,'.'))",
+																		"value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
 																		"type": "Expression"
 																	},
 																	"YEAR": {
@@ -1574,6 +2703,125 @@
 																}
 															}
 														]
+													},
+													{
+														"name": "Validate_Copy_EXCEL_To_Raw_Output",
+														"type": "GetMetadata",
+														"dependsOn": [
+															{
+																"activity": "Copy_EXCEL_To_Raw",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.00:05:00",
+															"retry": 1,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"dataset": {
+																"referenceName": "DS_RAW_PARQUET",
+																"type": "DatasetReference",
+																"parameters": {
+																	"EntityName": {
+																		"value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
+																		"type": "Expression"
+																	},
+																	"YEAR": {
+																		"value": "@formatDateTime(utcNow(),'yyyy')",
+																		"type": "Expression"
+																	},
+																	"MONTH": {
+																		"value": "@formatDateTime(utcNow(),'MM')",
+																		"type": "Expression"
+																	},
+																	"DAY": {
+																		"value": "@formatDateTime(utcNow(),'dd')",
+																		"type": "Expression"
+																	}
+																}
+															},
+															"fieldList": [
+																"exists",
+																"size"
+															]
+														}
+													},
+													{
+														"name": "SP_Update_SFTP_Snapshot_EXCEL",
+														"type": "SqlServerStoredProcedure",
+														"dependsOn": [
+															{
+																"activity": "Validate_Copy_EXCEL_To_Raw_Output",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.00:05:00",
+															"retry": 1,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"storedProcedureName": "dbo.ecom_update_watermark",
+															"storedProcedureParameters": {
+																"source_type": {
+																	"value": {
+																		"value": "SFTP",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"source_name": {
+																	"value": {
+																		"value": "Azure",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"schema_name": {
+																	"value": {
+																		"value": "@pipeline().parameters.pSourceFolder",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"table_name": {
+																	"value": {
+																		"value": "@toLower(substring(item().name,0,lastIndexOf(item().name,'.')))",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"watermark_column": {
+																	"value": {
+																		"value": "SNAPSHOT_LOAD_UTC",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"last_load_value": {
+																	"value": {
+																		"value": "@utcNow()",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																}
+															}
+														},
+														"linkedServiceName": {
+															"referenceName": "LS_AzureSQLDB",
+															"type": "LinkedServiceReference"
+														}
 													}
 												]
 											}
@@ -1611,6 +2859,7 @@
 				"[concat(variables('factoryId'), '/datasets/DS_BLOB_FOLDER')]",
 				"[concat(variables('factoryId'), '/datasets/DS_CSV')]",
 				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQLDB')]",
 				"[concat(variables('factoryId'), '/datasets/DS_Json')]",
 				"[concat(variables('factoryId'), '/datasets/DS_EXCEL')]"
 			]
@@ -1679,7 +2928,8 @@
 								"value": "@activity('LKUP_SNOWFLAKE_TABLES').output.value",
 								"type": "Expression"
 							},
-							"isSequential": true,
+							"isSequential": false,
+							"batchCount": 3,
 							"activities": [
 								{
 									"name": "EXEC_PL_SNOWFLAKE_TO_RAW",
@@ -1992,7 +3242,7 @@
 								"type": "DatasetReference",
 								"parameters": {
 									"EntityName": {
-										"value": "@pipeline().parameters.TableName",
+										"value": "@toLower(pipeline().parameters.TableName)",
 										"type": "Expression"
 									},
 									"YEAR": {
@@ -2082,6 +3332,77 @@
 								"enablePartitionDiscovery": false
 							}
 						}
+					},
+					{
+						"name": "SP_Update_Snowflake_Snapshot",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "IF_PARQUET_COUNT_MATCHES",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:05:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "dbo.ecom_update_watermark",
+							"storedProcedureParameters": {
+								"source_type": {
+									"value": {
+										"value": "Snowflake",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"source_name": {
+									"value": {
+										"value": "Cloud",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"schema_name": {
+									"value": {
+										"value": "@pipeline().parameters.SchemaName",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"table_name": {
+									"value": {
+										"value": "@toLower(pipeline().parameters.TableName)",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"watermark_column": {
+									"value": {
+										"value": "SNAPSHOT_LOAD_UTC",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"last_load_value": {
+									"value": {
+										"value": "@utcNow()",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_AzureSQLDB",
+							"type": "LinkedServiceReference"
+						}
 					}
 				],
 				"policy": {
@@ -2107,6 +3428,7 @@
 				"[concat(variables('factoryId'), '/datasets/DS_SNOWFLAKE')]",
 				"[concat(variables('factoryId'), '/datasets/DS_SNOWFLAKE_STAGING_CSV')]",
 				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQLDB')]",
 				"[concat(variables('factoryId'), '/linkedServices/LS_BLOB')]"
 			]
 		},
@@ -2162,7 +3484,8 @@
 								"value": "@activity('LKUP_Tables').output.value",
 								"type": "Expression"
 							},
-							"isSequential": true,
+							"isSequential": false,
+							"batchCount": 3,
 							"activities": [
 								{
 									"name": "LKUP_Source_Row_Count",
@@ -2180,7 +3503,7 @@
 										"source": {
 											"type": "SqlServerSource",
 											"sqlReaderQuery": {
-												"value": "@concat('SELECT COUNT_BIG(1) AS SourceRowCount FROM [', replace(item().SchemaName,']',']]'), '].[', replace(item().TableName,']',']]'), ']')",
+												"value": "@if(equals(toLower(item().TableName),'orders'),concat('SELECT COUNT_BIG(1) AS SourceRowCount FROM [',replace(item().SchemaName,']',']]'), '].[', replace(item().TableName,']',']]'), '] WHERE order_purchase_timestamp >= ''',pipeline().parameters.pBatchStartDate,''' AND order_purchase_timestamp < ''',pipeline().parameters.pBatchEndDate,''''),concat('SELECT COUNT_BIG(1) AS SourceRowCount FROM [', replace(item().SchemaName,']',']]'), '].[', replace(item().TableName,']',']]'), ']'))",
 												"type": "Expression"
 											},
 											"queryTimeout": "02:00:00",
@@ -2222,7 +3545,7 @@
 										"source": {
 											"type": "SqlServerSource",
 											"sqlReaderQuery": {
-												"value": "@concat('SELECT * FROM [', replace(item().SchemaName,']',']]'), '].[', replace(item().TableName,']',']]'), ']')",
+												"value": "@if(equals(toLower(item().TableName),'orders'),concat('SELECT * FROM [',replace(item().SchemaName,']',']]'), '].[', replace(item().TableName,']',']]'), '] WHERE order_purchase_timestamp >= ''',pipeline().parameters.pBatchStartDate,''' AND order_purchase_timestamp < ''',pipeline().parameters.pBatchEndDate,''''),concat('SELECT * FROM [', replace(item().SchemaName,']',']]'), '].[', replace(item().TableName,']',']]'), ']'))",
 												"type": "Expression"
 											},
 											"queryTimeout": "02:00:00",
@@ -2265,19 +3588,19 @@
 											"type": "DatasetReference",
 											"parameters": {
 												"EntityName": {
-													"value": "@concat(item().SchemaName,'_',item().TableName)",
+													"value": "@toLower(item().TableName)",
 													"type": "Expression"
 												},
 												"YEAR": {
-													"value": "@formatDateTime(utcNow(),'yyyy')",
+													"value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'yyyy'),formatDateTime(utcNow(),'yyyy'))",
 													"type": "Expression"
 												},
 												"MONTH": {
-													"value": "@formatDateTime(utcNow(),'MM')",
+													"value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'MM'),formatDateTime(utcNow(),'MM'))",
 													"type": "Expression"
 												},
 												"DAY": {
-													"value": "@formatDateTime(utcNow(),'dd')",
+													"value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'dd'),formatDateTime(utcNow(),'dd'))",
 													"type": "Expression"
 												}
 											}
@@ -2340,19 +3663,19 @@
 											"type": "DatasetReference",
 											"parameters": {
 												"EntityName": {
-													"value": "@concat(item().SchemaName,'_',item().TableName)",
+													"value": "@toLower(item().TableName)",
 													"type": "Expression"
 												},
 												"YEAR": {
-													"value": "@formatDateTime(utcNow(),'yyyy')",
+													"value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'yyyy'),formatDateTime(utcNow(),'yyyy'))",
 													"type": "Expression"
 												},
 												"MONTH": {
-													"value": "@formatDateTime(utcNow(),'MM')",
+													"value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'MM'),formatDateTime(utcNow(),'MM'))",
 													"type": "Expression"
 												},
 												"DAY": {
-													"value": "@formatDateTime(utcNow(),'dd')",
+													"value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'dd'),formatDateTime(utcNow(),'dd'))",
 													"type": "Expression"
 												}
 											}
@@ -2401,6 +3724,218 @@
 											}
 										]
 									}
+								},
+								{
+									"name": "IF_Update_Orders_Watermark",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "IF_SQL_Output_Exists",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@equals(toLower(item().TableName),'orders')",
+											"type": "Expression"
+										},
+										"ifTrueActivities": [
+											{
+												"name": "LKUP_Max_Order_Watermark",
+												"type": "Lookup",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.00:05:00",
+													"retry": 1,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "SqlServerSource",
+														"sqlReaderQuery": {
+															"value": "@concat('SELECT CONVERT(varchar(33), MAX(order_purchase_timestamp), 126) AS LastLoadValue FROM [',replace(item().SchemaName,']',']]'), '].[', replace(item().TableName,']',']]'), '] WHERE order_purchase_timestamp >= ''',pipeline().parameters.pBatchStartDate,''' AND order_purchase_timestamp < ''',pipeline().parameters.pBatchEndDate,'''')",
+															"type": "Expression"
+														},
+														"queryTimeout": "00:05:00",
+														"partitionOption": "None"
+													},
+													"dataset": {
+														"referenceName": "DS_SQLSERVER_TABLE",
+														"type": "DatasetReference",
+														"parameters": {
+															"TableName": {
+																"value": "@item().TableName",
+																"type": "Expression"
+															}
+														}
+													},
+													"firstRowOnly": true
+												}
+											},
+											{
+												"name": "SP_Update_Orders_Watermark",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "LKUP_Max_Order_Watermark",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.00:05:00",
+													"retry": 1,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "dbo.ecom_update_watermark",
+													"storedProcedureParameters": {
+														"source_type": {
+															"value": {
+																"value": "SQLServer",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"source_name": {
+															"value": {
+																"value": "OnPremises",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema_name": {
+															"value": {
+																"value": "@item().SchemaName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"table_name": {
+															"value": {
+																"value": "@item().TableName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark_column": {
+															"value": {
+																"value": "order_purchase_timestamp",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"last_load_value": {
+															"value": {
+																"value": "@string(activity('LKUP_Max_Order_Watermark').output.firstRow.LastLoadValue)",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "LS_AzureSQLDB",
+													"type": "LinkedServiceReference"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "IF_Update_Snapshot_Watermark",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "IF_Update_Orders_Watermark",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@or(equals(toLower(item().TableName),'products'),equals(toLower(item().TableName),'sellers'))",
+											"type": "Expression"
+										},
+										"ifTrueActivities": [
+											{
+												"name": "SP_Update_Snapshot_Watermark",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.00:05:00",
+													"retry": 1,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "dbo.ecom_update_watermark",
+													"storedProcedureParameters": {
+														"source_type": {
+															"value": {
+																"value": "SQLServer",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"source_name": {
+															"value": {
+																"value": "OnPremises",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema_name": {
+															"value": {
+																"value": "@item().SchemaName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"table_name": {
+															"value": {
+																"value": "@item().TableName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark_column": {
+															"value": {
+																"value": "SNAPSHOT_LOAD_UTC",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"last_load_value": {
+															"value": {
+																"value": "@utcNow()",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "LS_AzureSQLDB",
+													"type": "LinkedServiceReference"
+												}
+											}
+										]
+									}
 								}
 							]
 						}
@@ -2409,12 +3944,47 @@
 				"policy": {
 					"elapsedTimeMetric": {}
 				},
+				"parameters": {
+					"pBatchStartDate": {
+						"type": "string",
+						"defaultValue": "2016-01-01"
+					},
+					"pBatchEndDate": {
+						"type": "string",
+						"defaultValue": "2017-01-01"
+					}
+				},
 				"annotations": []
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_SQLSERVER_TABLE')]",
-				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]"
+				"[concat(variables('factoryId'), '/datasets/DS_RAW_PARQUET')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQLDB')]"
 			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Test_Intentional_Failure')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "FAIL_Intentional_Test",
+						"type": "Fail",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"message": "TEST_FAILURE",
+							"errorCode": "Intentional failure for testing"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/DS_AzureSQLDB')]",
@@ -3104,328 +4674,6 @@
 				"typeProperties": {}
 			},
 			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/PL1_Master')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "Metadata-driven orchestration for Azure E-commerce ETL source pipelines.",
-				"activities": [
-					{
-						"name": "LKUP_Master_Job_Metadata",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 1,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": "EXEC dbo.ecom_get_master_job_metadata;",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "DS_AzureSQLDB",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"firstRowOnly": false
-						}
-					},
-					{
-						"name": "FE_Process_Jobs",
-						"type": "ForEach",
-						"dependsOn": [
-							{
-								"activity": "LKUP_Master_Job_Metadata",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"items": {
-								"value": "@activity('LKUP_Master_Job_Metadata').output.value",
-								"type": "Expression"
-							},
-							"isSequential": true,
-							"activities": [
-								{
-									"name": "SW_Route_Source_Type",
-									"type": "Switch",
-									"dependsOn": [],
-									"userProperties": [],
-									"typeProperties": {
-										"on": {
-											"value": "@toUpper(item().SourceType)",
-											"type": "Expression"
-										},
-										"cases": [
-											{
-												"value": "SQL",
-												"activities": [
-													{
-														"name": "EXEC_PL_SQL_TO_RAW",
-														"type": "ExecutePipeline",
-														"dependsOn": [],
-														"policy": {
-															"secureInput": false
-														},
-														"userProperties": [],
-														"typeProperties": {
-															"pipeline": {
-																"referenceName": "PL_SQL_TO_RAW",
-																"type": "PipelineReference"
-															},
-															"waitOnCompletion": true,
-															"parameters": {}
-														}
-													}
-												]
-											},
-											{
-												"value": "RESTAPI",
-												"activities": [
-													{
-														"name": "EXEC_PL_RESTAPI_TO_RAW",
-														"type": "ExecutePipeline",
-														"dependsOn": [],
-														"policy": {
-															"secureInput": false
-														},
-														"userProperties": [],
-														"typeProperties": {
-															"pipeline": {
-																"referenceName": "PL_RESTAPI_TO_RAW",
-																"type": "PipelineReference"
-															},
-															"waitOnCompletion": true,
-															"parameters": {
-																"pApiUrl": {
-																	"value": "@concat(item().BaseURL,item().RelativeURL)",
-																	"type": "Expression"
-																},
-																"pEntityName": {
-																	"value": "@item().TargetEntity",
-																	"type": "Expression"
-																}
-															}
-														}
-													}
-												]
-											},
-											{
-												"value": "CSV",
-												"activities": [
-													{
-														"name": "EXEC_PL_CSV_TO_RAW",
-														"type": "ExecutePipeline",
-														"dependsOn": [],
-														"policy": {
-															"secureInput": false
-														},
-														"userProperties": [],
-														"typeProperties": {
-															"pipeline": {
-																"referenceName": "PL_CSV_TO_RAW",
-																"type": "PipelineReference"
-															},
-															"waitOnCompletion": true,
-															"parameters": {
-																"pSourceFolder": {
-																	"value": "@item().SourceDirectory",
-																	"type": "Expression"
-																}
-															}
-														}
-													}
-												]
-											},
-											{
-												"value": "EXCEL",
-												"activities": [
-													{
-														"name": "EXEC_PL_EXCEL_TO_RAW",
-														"type": "ExecutePipeline",
-														"dependsOn": [],
-														"policy": {
-															"secureInput": false
-														},
-														"userProperties": [],
-														"typeProperties": {
-															"pipeline": {
-																"referenceName": "PL_EXCEL_TO_RAW",
-																"type": "PipelineReference"
-															},
-															"waitOnCompletion": true,
-															"parameters": {
-																"pSourceFolder": {
-																	"value": "@item().SourceDirectory",
-																	"type": "Expression"
-																}
-															}
-														}
-													}
-												]
-											},
-											{
-												"value": "BULK",
-												"activities": [
-													{
-														"name": "EXEC_PL_BULK_TO_RAW",
-														"type": "ExecutePipeline",
-														"dependsOn": [],
-														"policy": {
-															"secureInput": false
-														},
-														"userProperties": [],
-														"typeProperties": {
-															"pipeline": {
-																"referenceName": "PL_BULK_TO_RAW",
-																"type": "PipelineReference"
-															},
-															"waitOnCompletion": true,
-															"parameters": {
-																"pSourceFolder": {
-																	"value": "@item().SourceDirectory",
-																	"type": "Expression"
-																}
-															}
-														}
-													}
-												]
-											},
-											{
-												"value": "SFTP",
-												"activities": [
-													{
-														"name": "EXEC_PL_SFTP_TO_RAW",
-														"type": "ExecutePipeline",
-														"dependsOn": [],
-														"policy": {
-															"secureInput": false
-														},
-														"userProperties": [],
-														"typeProperties": {
-															"pipeline": {
-																"referenceName": "PL_SFTP_TO_RAW",
-																"type": "PipelineReference"
-															},
-															"waitOnCompletion": true,
-															"parameters": {
-																"pSourceFolder": {
-																	"value": "@item().SourceDirectory",
-																	"type": "Expression"
-																}
-															}
-														}
-													}
-												]
-											},
-											{
-												"value": "JSON",
-												"activities": [
-													{
-														"name": "EXEC_PL_JSON_TO_RAW",
-														"type": "ExecutePipeline",
-														"dependsOn": [],
-														"policy": {
-															"secureInput": false
-														},
-														"userProperties": [],
-														"typeProperties": {
-															"pipeline": {
-																"referenceName": "PL_JSON_TO_RAW",
-																"type": "PipelineReference"
-															},
-															"waitOnCompletion": true,
-															"parameters": {
-																"pSourceDirectory": {
-																	"value": "@item().SourceDirectory",
-																	"type": "Expression"
-																}
-															}
-														}
-													}
-												]
-											},
-											{
-												"value": "SNOWFLAKE",
-												"activities": [
-													{
-														"name": "EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
-														"type": "ExecutePipeline",
-														"dependsOn": [],
-														"policy": {
-															"secureInput": false
-														},
-														"userProperties": [],
-														"typeProperties": {
-															"pipeline": {
-																"referenceName": "PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
-																"type": "PipelineReference"
-															},
-															"waitOnCompletion": true,
-															"parameters": {
-																"DatabaseName": {
-																	"value": "@if(empty(item().SourceDatabase),'DBAZURESNOW',item().SourceDatabase)",
-																	"type": "Expression"
-																}
-															}
-														}
-													}
-												]
-											}
-										],
-										"defaultActivities": [
-											{
-												"name": "FAIL_Unsupported_Source_Type",
-												"type": "Fail",
-												"dependsOn": [],
-												"userProperties": [],
-												"typeProperties": {
-													"message": {
-														"value": "@concat('Unsupported or missing SourceType for jobid: ',string(item().jobid))",
-														"type": "Expression"
-													},
-													"errorCode": "UNSUPPORTED_SOURCE_TYPE"
-												}
-											}
-										]
-									}
-								}
-							]
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"annotations": [
-					"Metadata-driven orchestration",
-					"Source-type routing",
-					"Sequential job execution"
-				]
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_AzureSQLDB')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_SQL_TO_RAW')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_RESTAPI_TO_RAW')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_CSV_TO_RAW')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_EXCEL_TO_RAW')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_BULK_TO_RAW')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_SFTP_TO_RAW')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_JSON_TO_RAW')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_SNOWFLAKE_METADATA_ORCHESTRATOR')]"
-			]
 		}
 	]
 }
