@@ -1,0 +1,18 @@
+{
+	"name": "PL_Test_Intentional_Failure",
+	"properties": {
+		"activities": [
+			{
+				"name": "FAIL_Intentional_Test",
+				"type": "Fail",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"message": "TEST_FAILURE",
+					"errorCode": "Intentional failure for testing"
+				}
+			}
+		],
+		"annotations": []
+	}
+}
