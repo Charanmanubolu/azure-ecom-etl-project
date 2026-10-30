@@ -72,7 +72,21 @@
                   },
                   "pipeline_id": {
                     "value": {
+                      "value": "@if(equals(toUpper(item().SourceType),'SQL'),'PL_SQL_TO_RAW',if(equals(toUpper(item().SourceType),'RESTAPI'),'PL_RESTAPI_TO_RAW',if(equals(toUpper(item().SourceType),'CSV'),'PL_CSV_TO_RAW',if(equals(toUpper(item().SourceType),'EXCEL'),'PL_EXCEL_TO_RAW',if(equals(toUpper(item().SourceType),'BULK'),'PL_BULK_TO_RAW',if(equals(toUpper(item().SourceType),'SFTP'),'PL_SFTP_TO_RAW',if(equals(toUpper(item().SourceType),'JSON'),'PL_JSON_TO_RAW',if(equals(toUpper(item().SourceType),'SNOWFLAKE'),'PL_SNOWFLAKE_METADATA_ORCHESTRATOR','PL_Test_Intentional_Failure'))))))))",
+                      "type": "Expression"
+                    },
+                    "type": "String"
+                  },
+                  "master_pipeline_id": {
+                    "value": {
                       "value": "@pipeline().Pipeline",
+                      "type": "Expression"
+                    },
+                    "type": "String"
+                  },
+                  "master_run_id": {
+                    "value": {
+                      "value": "@pipeline().RunId",
                       "type": "Expression"
                     },
                     "type": "String"
@@ -396,12 +410,31 @@
                   },
                   "pipeline_id": {
                     "value": {
-                      "value": "@pipeline().Pipeline",
+                      "value": "@if(equals(toUpper(item().SourceType),'SQL'),'PL_SQL_TO_RAW',if(equals(toUpper(item().SourceType),'RESTAPI'),'PL_RESTAPI_TO_RAW',if(equals(toUpper(item().SourceType),'CSV'),'PL_CSV_TO_RAW',if(equals(toUpper(item().SourceType),'EXCEL'),'PL_EXCEL_TO_RAW',if(equals(toUpper(item().SourceType),'BULK'),'PL_BULK_TO_RAW',if(equals(toUpper(item().SourceType),'SFTP'),'PL_SFTP_TO_RAW',if(equals(toUpper(item().SourceType),'JSON'),'PL_JSON_TO_RAW',if(equals(toUpper(item().SourceType),'SNOWFLAKE'),'PL_SNOWFLAKE_METADATA_ORCHESTRATOR','PL_Test_Intentional_Failure'))))))))",
                       "type": "Expression"
                     },
                     "type": "String"
                   },
                   "error": {
+                    "value": null,
+                    "type": "String"
+                  },
+                  "master_run_id": {
+                    "value": {
+                      "value": "@pipeline().RunId",
+                      "type": "Expression"
+                    },
+                    "type": "String"
+                  },
+                  "activity_name": {
+                    "value": null,
+                    "type": "String"
+                  },
+                  "error_code": {
+                    "value": null,
+                    "type": "String"
+                  },
+                  "child_run_id": {
                     "value": null,
                     "type": "String"
                   }
@@ -443,7 +476,7 @@
                   },
                   "pipeline_id": {
                     "value": {
-                      "value": "@pipeline().Pipeline",
+                      "value": "@if(equals(toUpper(item().SourceType),'SQL'),'PL_SQL_TO_RAW',if(equals(toUpper(item().SourceType),'RESTAPI'),'PL_RESTAPI_TO_RAW',if(equals(toUpper(item().SourceType),'CSV'),'PL_CSV_TO_RAW',if(equals(toUpper(item().SourceType),'EXCEL'),'PL_EXCEL_TO_RAW',if(equals(toUpper(item().SourceType),'BULK'),'PL_BULK_TO_RAW',if(equals(toUpper(item().SourceType),'SFTP'),'PL_SFTP_TO_RAW',if(equals(toUpper(item().SourceType),'JSON'),'PL_JSON_TO_RAW',if(equals(toUpper(item().SourceType),'SNOWFLAKE'),'PL_SNOWFLAKE_METADATA_ORCHESTRATOR','PL_Test_Intentional_Failure'))))))))",
                       "type": "Expression"
                     },
                     "type": "String"
@@ -453,6 +486,31 @@
                       "value": "@string(activity('SW_Route_Source_Type').error.message)",
                       "type": "Expression"
                     },
+                    "type": "String"
+                  },
+                  "master_run_id": {
+                    "value": {
+                      "value": "@pipeline().RunId",
+                      "type": "Expression"
+                    },
+                    "type": "String"
+                  },
+                  "activity_name": {
+                    "value": {
+                      "value": "SW_Route_Source_Type",
+                      "type": "Expression"
+                    },
+                    "type": "String"
+                  },
+                  "error_code": {
+                    "value": {
+                      "value": "CHILD_PIPELINE_FAILED",
+                      "type": "Expression"
+                    },
+                    "type": "String"
+                  },
+                  "child_run_id": {
+                    "value": null,
                     "type": "String"
                   }
                 }
