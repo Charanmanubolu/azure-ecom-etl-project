@@ -51,9 +51,10 @@ BEGIN
  IF NULLIF(@master_run_id,'') IS NULL THROW 50011,'ADF master RunId is required.',1;
 
  DECLARE @numeric_master_run_id BIGINT, @lock_result INT;
+ DECLARE @lock_resource NVARCHAR(255)=CONCAT('ecom-adf-master-run:',@master_run_id);
  BEGIN TRANSACTION;
  EXEC @lock_result=sys.sp_getapplock
-  @Resource=CONCAT('ecom-adf-master-run:',@master_run_id),
+  @Resource=@lock_resource,
   @LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=15000;
  IF @lock_result<0 THROW 50013,'Could not acquire master-run logging lock.',1;
 
