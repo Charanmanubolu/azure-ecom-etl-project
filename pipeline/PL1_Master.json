@@ -688,14 +688,14 @@
             "activity_name": {
               "value": {
                 "value": "FE_Process_Jobs",
-                "type": "Expression"
+                "type": "String"
               },
               "type": "String"
             },
             "error_code": {
               "value": {
                 "value": "MASTER_OR_CHILD_PIPELINE_FAILED",
-                "type": "Expression"
+                "type": "String"
               },
               "type": "String"
             }
@@ -752,14 +752,14 @@
             "activity_name": {
               "value": {
                 "value": "LKUP_Master_Job_Metadata",
-                "type": "Expression"
+                "type": "String"
               },
               "type": "String"
             },
             "error_code": {
               "value": {
                 "value": "MASTER_METADATA_LOOKUP_FAILED",
-                "type": "Expression"
+                "type": "String"
               },
               "type": "String"
             }
