@@ -44,21 +44,17 @@ BEGIN
 
     SET @final_status =
         CASE
-            WHEN @successful_jobs > 0
-                 AND (
-                     @error IS NOT NULL
-                     OR @failed_jobs > 0
-                     OR @pending_jobs > 0
-                     OR @running_jobs > 0
-                     OR @successful_jobs < @total_child_jobs
-                 )
+            WHEN @error IS NOT NULL
+                 AND @successful_jobs > 0
+                 AND (@failed_jobs > 0 OR @pending_jobs > 0 OR @running_jobs > 0)
                 THEN 'Partial'
+            WHEN @error IS NOT NULL THEN 'Failed'
             WHEN @total_child_jobs > 0
                  AND @successful_jobs = @total_child_jobs
-                 AND @error IS NULL
                  AND @pending_jobs = 0
                  AND @running_jobs = 0
                 THEN 'Succeeded'
+            WHEN @successful_jobs > 0 THEN 'Partial'
             ELSE 'Failed'
         END;
 
