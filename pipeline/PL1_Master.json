@@ -4,9 +4,52 @@
     "description": "Metadata-driven orchestration for Azure E-commerce ETL source pipelines.",
     "activities": [
       {
+        "name": "SP_Start_Master_Log",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.00:05:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 15,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "storedProcedureName": "dbo.ecom_start_master_log",
+          "storedProcedureParameters": {
+            "master_pipeline_id": {
+              "value": {
+                "value": "@pipeline().Pipeline",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "master_run_id": {
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
+              "type": "String"
+            }
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "LS_AzureSQLDB",
+          "type": "LinkedServiceReference"
+        }
+      },
+      {
         "name": "LKUP_Master_Job_Metadata",
         "type": "Lookup",
-        "dependsOn": [],
+        "dependsOn": [
+          {
+            "activity": "SP_Start_Master_Log",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
         "policy": {
           "timeout": "0.12:00:00",
           "retry": 1,
@@ -542,6 +585,189 @@
             }
           ],
           "batchCount": 3
+        }
+      },
+      {
+        "name": "SP_End_Master_Log_Success",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [
+          {
+            "activity": "FE_Process_Jobs",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.00:05:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 15,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "storedProcedureName": "dbo.ecom_end_master_log",
+          "storedProcedureParameters": {
+            "master_pipeline_id": {
+              "value": {
+                "value": "@pipeline().Pipeline",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "master_run_id": {
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "error": {
+              "value": null,
+              "type": "String"
+            },
+            "activity_name": {
+              "value": null,
+              "type": "String"
+            },
+            "error_code": {
+              "value": null,
+              "type": "String"
+            }
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "LS_AzureSQLDB",
+          "type": "LinkedServiceReference"
+        }
+      },
+      {
+        "name": "SP_End_Master_Log_Failure_FE",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [
+          {
+            "activity": "FE_Process_Jobs",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.00:05:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 15,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "storedProcedureName": "dbo.ecom_end_master_log",
+          "storedProcedureParameters": {
+            "master_pipeline_id": {
+              "value": {
+                "value": "@pipeline().Pipeline",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "master_run_id": {
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "error": {
+              "value": {
+                "value": "@string(activity('FE_Process_Jobs').error.message)",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "activity_name": {
+              "value": {
+                "value": "FE_Process_Jobs",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "error_code": {
+              "value": {
+                "value": "MASTER_OR_CHILD_PIPELINE_FAILED",
+                "type": "Expression"
+              },
+              "type": "String"
+            }
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "LS_AzureSQLDB",
+          "type": "LinkedServiceReference"
+        }
+      },
+      {
+        "name": "SP_End_Master_Log_Failure_Lookup",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [
+          {
+            "activity": "LKUP_Master_Job_Metadata",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.00:05:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 15,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "storedProcedureName": "dbo.ecom_end_master_log",
+          "storedProcedureParameters": {
+            "master_pipeline_id": {
+              "value": {
+                "value": "@pipeline().Pipeline",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "master_run_id": {
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "error": {
+              "value": {
+                "value": "@string(activity('LKUP_Master_Job_Metadata').error.message)",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "activity_name": {
+              "value": {
+                "value": "LKUP_Master_Job_Metadata",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "error_code": {
+              "value": {
+                "value": "MASTER_METADATA_LOOKUP_FAILED",
+                "type": "Expression"
+              },
+              "type": "String"
+            }
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "LS_AzureSQLDB",
+          "type": "LinkedServiceReference"
         }
       }
     ],
