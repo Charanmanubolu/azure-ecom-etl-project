@@ -189,7 +189,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Success",
+                        "name": "SP_Log_Child_Success_SQL",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -258,7 +258,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Failure",
+                        "name": "SP_Log_Child_Failure_SQL",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -336,11 +336,11 @@
                         }
                       },
                       {
-                        "name": "FAIL_Child_Execution",
+                        "name": "FAIL_Child_Execution_SQL",
                         "type": "Fail",
                         "dependsOn": [
                           {
-                            "activity": "SP_Log_Child_Failure",
+                            "activity": "SP_Log_Child_Failure_SQL",
                             "dependencyConditions": [
                               "Succeeded"
                             ]
@@ -387,7 +387,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Success",
+                        "name": "SP_Log_Child_Success_RESTAPI",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -456,7 +456,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Failure",
+                        "name": "SP_Log_Child_Failure_RESTAPI",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -534,11 +534,11 @@
                         }
                       },
                       {
-                        "name": "FAIL_Child_Execution",
+                        "name": "FAIL_Child_Execution_RESTAPI",
                         "type": "Fail",
                         "dependsOn": [
                           {
-                            "activity": "SP_Log_Child_Failure",
+                            "activity": "SP_Log_Child_Failure_RESTAPI",
                             "dependencyConditions": [
                               "Succeeded"
                             ]
@@ -581,7 +581,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Success",
+                        "name": "SP_Log_Child_Success_CSV",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -650,7 +650,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Failure",
+                        "name": "SP_Log_Child_Failure_CSV",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -728,11 +728,11 @@
                         }
                       },
                       {
-                        "name": "FAIL_Child_Execution",
+                        "name": "FAIL_Child_Execution_CSV",
                         "type": "Fail",
                         "dependsOn": [
                           {
-                            "activity": "SP_Log_Child_Failure",
+                            "activity": "SP_Log_Child_Failure_CSV",
                             "dependencyConditions": [
                               "Succeeded"
                             ]
@@ -775,7 +775,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Success",
+                        "name": "SP_Log_Child_Success_EXCEL",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -844,7 +844,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Failure",
+                        "name": "SP_Log_Child_Failure_EXCEL",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -922,11 +922,11 @@
                         }
                       },
                       {
-                        "name": "FAIL_Child_Execution",
+                        "name": "FAIL_Child_Execution_EXCEL",
                         "type": "Fail",
                         "dependsOn": [
                           {
-                            "activity": "SP_Log_Child_Failure",
+                            "activity": "SP_Log_Child_Failure_EXCEL",
                             "dependencyConditions": [
                               "Succeeded"
                             ]
@@ -969,7 +969,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Success",
+                        "name": "SP_Log_Child_Success_BULK",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -1038,7 +1038,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Failure",
+                        "name": "SP_Log_Child_Failure_BULK",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -1116,11 +1116,11 @@
                         }
                       },
                       {
-                        "name": "FAIL_Child_Execution",
+                        "name": "FAIL_Child_Execution_BULK",
                         "type": "Fail",
                         "dependsOn": [
                           {
-                            "activity": "SP_Log_Child_Failure",
+                            "activity": "SP_Log_Child_Failure_BULK",
                             "dependencyConditions": [
                               "Succeeded"
                             ]
@@ -1163,7 +1163,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Success",
+                        "name": "SP_Log_Child_Success_SFTP",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -1232,7 +1232,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Failure",
+                        "name": "SP_Log_Child_Failure_SFTP",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -1310,11 +1310,11 @@
                         }
                       },
                       {
-                        "name": "FAIL_Child_Execution",
+                        "name": "FAIL_Child_Execution_SFTP",
                         "type": "Fail",
                         "dependsOn": [
                           {
-                            "activity": "SP_Log_Child_Failure",
+                            "activity": "SP_Log_Child_Failure_SFTP",
                             "dependencyConditions": [
                               "Succeeded"
                             ]
@@ -1357,7 +1357,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Success",
+                        "name": "SP_Log_Child_Success_JSON",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -1426,7 +1426,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Failure",
+                        "name": "SP_Log_Child_Failure_JSON",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -1504,11 +1504,11 @@
                         }
                       },
                       {
-                        "name": "FAIL_Child_Execution",
+                        "name": "FAIL_Child_Execution_JSON",
                         "type": "Fail",
                         "dependsOn": [
                           {
-                            "activity": "SP_Log_Child_Failure",
+                            "activity": "SP_Log_Child_Failure_JSON",
                             "dependencyConditions": [
                               "Succeeded"
                             ]
@@ -1551,7 +1551,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Success",
+                        "name": "SP_Log_Child_Success_SNOWFLAKE",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -1620,7 +1620,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Failure",
+                        "name": "SP_Log_Child_Failure_SNOWFLAKE",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -1698,11 +1698,11 @@
                         }
                       },
                       {
-                        "name": "FAIL_Child_Execution",
+                        "name": "FAIL_Child_Execution_SNOWFLAKE",
                         "type": "Fail",
                         "dependsOn": [
                           {
-                            "activity": "SP_Log_Child_Failure",
+                            "activity": "SP_Log_Child_Failure_SNOWFLAKE",
                             "dependencyConditions": [
                               "Succeeded"
                             ]
@@ -1739,7 +1739,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Success",
+                        "name": "SP_Log_Child_Success_TESTFAIL",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -1808,7 +1808,7 @@
                         }
                       },
                       {
-                        "name": "SP_Log_Child_Failure",
+                        "name": "SP_Log_Child_Failure_TESTFAIL",
                         "type": "SqlServerStoredProcedure",
                         "dependsOn": [
                           {
@@ -1886,11 +1886,11 @@
                         }
                       },
                       {
-                        "name": "FAIL_Child_Execution",
+                        "name": "FAIL_Child_Execution_TESTFAIL",
                         "type": "Fail",
                         "dependsOn": [
                           {
-                            "activity": "SP_Log_Child_Failure",
+                            "activity": "SP_Log_Child_Failure_TESTFAIL",
                             "dependencyConditions": [
                               "Succeeded"
                             ]
