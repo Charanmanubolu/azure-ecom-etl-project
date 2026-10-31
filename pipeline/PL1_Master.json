@@ -2135,17 +2135,11 @@
               "type": "String"
             },
             "activity_name": {
-              "value": {
-                "value": "FE_Process_Jobs",
-                "type": "String"
-              },
+              "value": "FE_Process_Jobs",
               "type": "String"
             },
             "error_code": {
-              "value": {
-                "value": "MASTER_OR_CHILD_PIPELINE_FAILED",
-                "type": "String"
-              },
+              "value": "MASTER_OR_CHILD_PIPELINE_FAILED",
               "type": "String"
             }
           }
@@ -2199,17 +2193,11 @@
               "type": "String"
             },
             "activity_name": {
-              "value": {
-                "value": "LKUP_Master_Job_Metadata",
-                "type": "String"
-              },
+              "value": "LKUP_Master_Job_Metadata",
               "type": "String"
             },
             "error_code": {
-              "value": {
-                "value": "MASTER_METADATA_LOOKUP_FAILED",
-                "type": "String"
-              },
+              "value": "MASTER_METADATA_LOOKUP_FAILED",
               "type": "String"
             }
           }
@@ -2263,17 +2251,11 @@
               "type": "String"
             },
             "activity_name": {
-              "value": {
-                "value": "IF_Test_Failure",
-                "type": "String"
-              },
+              "value": "IF_Test_Failure",
               "type": "String"
             },
             "error_code": {
-              "value": {
-                "value": "INTENTIONAL_TEST_FAILURE",
-                "type": "String"
-              },
+              "value": "INTENTIONAL_TEST_FAILURE",
               "type": "String"
             }
           }
