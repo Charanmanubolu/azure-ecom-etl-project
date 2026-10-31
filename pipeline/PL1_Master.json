@@ -187,6 +187,173 @@
                             }
                           }
                         }
+                      },
+                      {
+                        "name": "SP_Log_Child_Success",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_SQL_TO_RAW",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_SQL_TO_RAW').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_SQL_TO_RAW').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "SP_Log_Child_Failure",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_SQL_TO_RAW",
+                            "dependencyConditions": [
+                              "Failed"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_SQL_TO_RAW').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": {
+                                "value": "@string(activity('EXEC_PL_SQL_TO_RAW').error.message)",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": {
+                                "value": "EXEC_PL_SQL_TO_RAW",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": {
+                                "value": "CHILD_PIPELINE_FAILED",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_SQL_TO_RAW').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "FAIL_Child_Execution",
+                        "type": "Fail",
+                        "dependsOn": [
+                          {
+                            "activity": "SP_Log_Child_Failure",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                          "message": {
+                            "value": "@concat('Child pipeline failed: ', 'EXEC_PL_SQL_TO_RAW', '. Check dbo.ecom_tbl_log_dtls.')",
+                            "type": "Expression"
+                          },
+                          "errorCode": "CHILD_PIPELINE_FAILED"
+                        }
                       }
                     ]
                   },
@@ -218,6 +385,173 @@
                             }
                           }
                         }
+                      },
+                      {
+                        "name": "SP_Log_Child_Success",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_RESTAPI_TO_RAW",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_RESTAPI_TO_RAW').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_RESTAPI_TO_RAW').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "SP_Log_Child_Failure",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_RESTAPI_TO_RAW",
+                            "dependencyConditions": [
+                              "Failed"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_RESTAPI_TO_RAW').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": {
+                                "value": "@string(activity('EXEC_PL_RESTAPI_TO_RAW').error.message)",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": {
+                                "value": "EXEC_PL_RESTAPI_TO_RAW",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": {
+                                "value": "CHILD_PIPELINE_FAILED",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_RESTAPI_TO_RAW').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "FAIL_Child_Execution",
+                        "type": "Fail",
+                        "dependsOn": [
+                          {
+                            "activity": "SP_Log_Child_Failure",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                          "message": {
+                            "value": "@concat('Child pipeline failed: ', 'EXEC_PL_RESTAPI_TO_RAW', '. Check dbo.ecom_tbl_log_dtls.')",
+                            "type": "Expression"
+                          },
+                          "errorCode": "CHILD_PIPELINE_FAILED"
+                        }
                       }
                     ]
                   },
@@ -244,6 +578,173 @@
                               "type": "Expression"
                             }
                           }
+                        }
+                      },
+                      {
+                        "name": "SP_Log_Child_Success",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_CSV_TO_RAW",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_CSV_TO_RAW').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_CSV_TO_RAW').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "SP_Log_Child_Failure",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_CSV_TO_RAW",
+                            "dependencyConditions": [
+                              "Failed"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_CSV_TO_RAW').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": {
+                                "value": "@string(activity('EXEC_PL_CSV_TO_RAW').error.message)",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": {
+                                "value": "EXEC_PL_CSV_TO_RAW",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": {
+                                "value": "CHILD_PIPELINE_FAILED",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_CSV_TO_RAW').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "FAIL_Child_Execution",
+                        "type": "Fail",
+                        "dependsOn": [
+                          {
+                            "activity": "SP_Log_Child_Failure",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                          "message": {
+                            "value": "@concat('Child pipeline failed: ', 'EXEC_PL_CSV_TO_RAW', '. Check dbo.ecom_tbl_log_dtls.')",
+                            "type": "Expression"
+                          },
+                          "errorCode": "CHILD_PIPELINE_FAILED"
                         }
                       }
                     ]
@@ -272,6 +773,173 @@
                             }
                           }
                         }
+                      },
+                      {
+                        "name": "SP_Log_Child_Success",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_EXCEL_TO_RAW",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_EXCEL_TO_RAW').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_EXCEL_TO_RAW').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "SP_Log_Child_Failure",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_EXCEL_TO_RAW",
+                            "dependencyConditions": [
+                              "Failed"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_EXCEL_TO_RAW').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": {
+                                "value": "@string(activity('EXEC_PL_EXCEL_TO_RAW').error.message)",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": {
+                                "value": "EXEC_PL_EXCEL_TO_RAW",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": {
+                                "value": "CHILD_PIPELINE_FAILED",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_EXCEL_TO_RAW').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "FAIL_Child_Execution",
+                        "type": "Fail",
+                        "dependsOn": [
+                          {
+                            "activity": "SP_Log_Child_Failure",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                          "message": {
+                            "value": "@concat('Child pipeline failed: ', 'EXEC_PL_EXCEL_TO_RAW', '. Check dbo.ecom_tbl_log_dtls.')",
+                            "type": "Expression"
+                          },
+                          "errorCode": "CHILD_PIPELINE_FAILED"
+                        }
                       }
                     ]
                   },
@@ -298,6 +966,173 @@
                               "type": "Expression"
                             }
                           }
+                        }
+                      },
+                      {
+                        "name": "SP_Log_Child_Success",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_BULK_TO_RAW",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_BULK_TO_RAW').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_BULK_TO_RAW').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "SP_Log_Child_Failure",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_BULK_TO_RAW",
+                            "dependencyConditions": [
+                              "Failed"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_BULK_TO_RAW').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": {
+                                "value": "@string(activity('EXEC_PL_BULK_TO_RAW').error.message)",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": {
+                                "value": "EXEC_PL_BULK_TO_RAW",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": {
+                                "value": "CHILD_PIPELINE_FAILED",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_BULK_TO_RAW').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "FAIL_Child_Execution",
+                        "type": "Fail",
+                        "dependsOn": [
+                          {
+                            "activity": "SP_Log_Child_Failure",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                          "message": {
+                            "value": "@concat('Child pipeline failed: ', 'EXEC_PL_BULK_TO_RAW', '. Check dbo.ecom_tbl_log_dtls.')",
+                            "type": "Expression"
+                          },
+                          "errorCode": "CHILD_PIPELINE_FAILED"
                         }
                       }
                     ]
@@ -326,6 +1161,173 @@
                             }
                           }
                         }
+                      },
+                      {
+                        "name": "SP_Log_Child_Success",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_SFTP_TO_RAW",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_SFTP_TO_RAW').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_SFTP_TO_RAW').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "SP_Log_Child_Failure",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_SFTP_TO_RAW",
+                            "dependencyConditions": [
+                              "Failed"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_SFTP_TO_RAW').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": {
+                                "value": "@string(activity('EXEC_PL_SFTP_TO_RAW').error.message)",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": {
+                                "value": "EXEC_PL_SFTP_TO_RAW",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": {
+                                "value": "CHILD_PIPELINE_FAILED",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_SFTP_TO_RAW').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "FAIL_Child_Execution",
+                        "type": "Fail",
+                        "dependsOn": [
+                          {
+                            "activity": "SP_Log_Child_Failure",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                          "message": {
+                            "value": "@concat('Child pipeline failed: ', 'EXEC_PL_SFTP_TO_RAW', '. Check dbo.ecom_tbl_log_dtls.')",
+                            "type": "Expression"
+                          },
+                          "errorCode": "CHILD_PIPELINE_FAILED"
+                        }
                       }
                     ]
                   },
@@ -352,6 +1354,173 @@
                               "type": "Expression"
                             }
                           }
+                        }
+                      },
+                      {
+                        "name": "SP_Log_Child_Success",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_JSON_TO_RAW",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_JSON_TO_RAW').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_JSON_TO_RAW').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "SP_Log_Child_Failure",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_JSON_TO_RAW",
+                            "dependencyConditions": [
+                              "Failed"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_JSON_TO_RAW').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": {
+                                "value": "@string(activity('EXEC_PL_JSON_TO_RAW').error.message)",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": {
+                                "value": "EXEC_PL_JSON_TO_RAW",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": {
+                                "value": "CHILD_PIPELINE_FAILED",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_JSON_TO_RAW').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "FAIL_Child_Execution",
+                        "type": "Fail",
+                        "dependsOn": [
+                          {
+                            "activity": "SP_Log_Child_Failure",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                          "message": {
+                            "value": "@concat('Child pipeline failed: ', 'EXEC_PL_JSON_TO_RAW', '. Check dbo.ecom_tbl_log_dtls.')",
+                            "type": "Expression"
+                          },
+                          "errorCode": "CHILD_PIPELINE_FAILED"
                         }
                       }
                     ]
@@ -380,6 +1549,173 @@
                             }
                           }
                         }
+                      },
+                      {
+                        "name": "SP_Log_Child_Success",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "SP_Log_Child_Failure",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
+                            "dependencyConditions": [
+                              "Failed"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": {
+                                "value": "@string(activity('EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR').error.message)",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": {
+                                "value": "EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": {
+                                "value": "CHILD_PIPELINE_FAILED",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "FAIL_Child_Execution",
+                        "type": "Fail",
+                        "dependsOn": [
+                          {
+                            "activity": "SP_Log_Child_Failure",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                          "message": {
+                            "value": "@concat('Child pipeline failed: ', 'EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR', '. Check dbo.ecom_tbl_log_dtls.')",
+                            "type": "Expression"
+                          },
+                          "errorCode": "CHILD_PIPELINE_FAILED"
+                        }
                       }
                     ]
                   },
@@ -401,15 +1737,257 @@
                           },
                           "waitOnCompletion": true
                         }
+                      },
+                      {
+                        "name": "SP_Log_Child_Success",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_Test_Intentional_Failure",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_Test_Intentional_Failure').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": null,
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_Test_Intentional_Failure').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "SP_Log_Child_Failure",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                          {
+                            "activity": "EXEC_PL_Test_Intentional_Failure",
+                            "dependencyConditions": [
+                              "Failed"
+                            ]
+                          }
+                        ],
+                        "policy": {
+                          "timeout": "0.00:05:00",
+                          "retry": 1,
+                          "retryIntervalInSeconds": 15,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                          "storedProcedureName": "dbo.ecom_end_log_entry",
+                          "storedProcedureParameters": {
+                            "jobid": {
+                              "value": {
+                                "value": "@int(item().jobid)",
+                                "type": "Expression"
+                              },
+                              "type": "Int"
+                            },
+                            "pipeline_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_Test_Intentional_Failure').output.pipelineName",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "master_run_id": {
+                              "value": {
+                                "value": "@pipeline().RunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "error": {
+                              "value": {
+                                "value": "@string(activity('EXEC_PL_Test_Intentional_Failure').error.message)",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            },
+                            "activity_name": {
+                              "value": {
+                                "value": "EXEC_PL_Test_Intentional_Failure",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "error_code": {
+                              "value": {
+                                "value": "CHILD_PIPELINE_FAILED",
+                                "type": "String"
+                              },
+                              "type": "String"
+                            },
+                            "child_run_id": {
+                              "value": {
+                                "value": "@activity('EXEC_PL_Test_Intentional_Failure').output.pipelineRunId",
+                                "type": "Expression"
+                              },
+                              "type": "String"
+                            }
+                          }
+                        },
+                        "linkedServiceName": {
+                          "referenceName": "LS_AzureSQLDB",
+                          "type": "LinkedServiceReference"
+                        }
+                      },
+                      {
+                        "name": "FAIL_Child_Execution",
+                        "type": "Fail",
+                        "dependsOn": [
+                          {
+                            "activity": "SP_Log_Child_Failure",
+                            "dependencyConditions": [
+                              "Succeeded"
+                            ]
+                          }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                          "message": {
+                            "value": "@concat('Child pipeline failed: ', 'EXEC_PL_Test_Intentional_Failure', '. Check dbo.ecom_tbl_log_dtls.')",
+                            "type": "Expression"
+                          },
+                          "errorCode": "CHILD_PIPELINE_FAILED"
+                        }
                       }
                     ]
                   }
                 ],
                 "defaultActivities": [
                   {
+                    "name": "SP_Log_Unsupported_Source",
+                    "type": "SqlServerStoredProcedure",
+                    "dependsOn": [],
+                    "policy": {
+                      "timeout": "0.00:05:00",
+                      "retry": 1,
+                      "retryIntervalInSeconds": 15,
+                      "secureOutput": false,
+                      "secureInput": false
+                    },
+                    "userProperties": [],
+                    "typeProperties": {
+                      "storedProcedureName": "dbo.ecom_end_log_entry",
+                      "storedProcedureParameters": {
+                        "jobid": {
+                          "value": {
+                            "value": "@int(item().jobid)",
+                            "type": "Expression"
+                          },
+                          "type": "Int"
+                        },
+                        "pipeline_id": {
+                          "value": {
+                            "value": "@concat('UNSUPPORTED_',string(item().SourceType))",
+                            "type": "Expression"
+                          },
+                          "type": "String"
+                        },
+                        "master_run_id": {
+                          "value": {
+                            "value": "@pipeline().RunId",
+                            "type": "Expression"
+                          },
+                          "type": "String"
+                        },
+                        "error": {
+                          "value": {
+                            "value": "@concat('Unsupported or missing SourceType for jobid: ',string(item().jobid))",
+                            "type": "Expression"
+                          },
+                          "type": "String"
+                        },
+                        "activity_name": {
+                          "value": {
+                            "value": "SW_Route_Source_Type",
+                            "type": "String"
+                          },
+                          "type": "String"
+                        },
+                        "error_code": {
+                          "value": {
+                            "value": "UNSUPPORTED_SOURCE_TYPE",
+                            "type": "String"
+                          },
+                          "type": "String"
+                        },
+                        "child_run_id": {
+                          "value": null,
+                          "type": "String"
+                        }
+                      }
+                    },
+                    "linkedServiceName": {
+                      "referenceName": "LS_AzureSQLDB",
+                      "type": "LinkedServiceReference"
+                    }
+                  },
+                  {
                     "name": "FAIL_Unsupported_Source_Type",
                     "type": "Fail",
-                    "dependsOn": [],
+                    "dependsOn": [
+                      {
+                        "activity": "SP_Log_Unsupported_Source",
+                        "dependencyConditions": [
+                          "Succeeded"
+                        ]
+                      }
+                    ],
                     "userProperties": [],
                     "typeProperties": {
                       "message": {
@@ -421,170 +1999,41 @@
                   }
                 ]
               }
-            },
-            {
-              "name": "SP_End_Job_Log_Success",
-              "type": "SqlServerStoredProcedure",
-              "dependsOn": [
-                {
-                  "activity": "SW_Route_Source_Type",
-                  "dependencyConditions": [
-                    "Succeeded"
-                  ]
-                }
-              ],
-              "policy": {
-                "timeout": "0.00:05:00",
-                "retry": 1,
-                "retryIntervalInSeconds": 15,
-                "secureOutput": false,
-                "secureInput": false
-              },
-              "userProperties": [],
-              "typeProperties": {
-                "storedProcedureName": "dbo.ecom_end_log_entry",
-                "storedProcedureParameters": {
-                  "jobid": {
-                    "value": {
-                      "value": "@int(item().jobid)",
-                      "type": "Expression"
-                    },
-                    "type": "Int"
-                  },
-                  "pipeline_id": {
-                    "value": {
-                      "value": "@if(equals(toUpper(item().SourceType),'SQL'),'PL_SQL_TO_RAW',if(equals(toUpper(item().SourceType),'RESTAPI'),'PL_RESTAPI_TO_RAW',if(equals(toUpper(item().SourceType),'CSV'),'PL_CSV_TO_RAW',if(equals(toUpper(item().SourceType),'EXCEL'),'PL_EXCEL_TO_RAW',if(equals(toUpper(item().SourceType),'BULK'),'PL_BULK_TO_RAW',if(equals(toUpper(item().SourceType),'SFTP'),'PL_SFTP_TO_RAW',if(equals(toUpper(item().SourceType),'JSON'),'PL_JSON_TO_RAW',if(equals(toUpper(item().SourceType),'SNOWFLAKE'),'PL_SNOWFLAKE_METADATA_ORCHESTRATOR','PL_Test_Intentional_Failure'))))))))",
-                      "type": "Expression"
-                    },
-                    "type": "String"
-                  },
-                  "error": {
-                    "value": null,
-                    "type": "String"
-                  },
-                  "master_run_id": {
-                    "value": {
-                      "value": "@pipeline().RunId",
-                      "type": "Expression"
-                    },
-                    "type": "String"
-                  },
-                  "activity_name": {
-                    "value": null,
-                    "type": "String"
-                  },
-                  "error_code": {
-                    "value": null,
-                    "type": "String"
-                  },
-                  "child_run_id": {
-                    "value": null,
-                    "type": "String"
-                  }
-                }
-              },
-              "linkedServiceName": {
-                "referenceName": "LS_AzureSQLDB",
-                "type": "LinkedServiceReference"
-              }
-            },
-            {
-              "name": "SP_End_Job_Log_Failure",
-              "type": "SqlServerStoredProcedure",
-              "dependsOn": [
-                {
-                  "activity": "SW_Route_Source_Type",
-                  "dependencyConditions": [
-                    "Failed"
-                  ]
-                }
-              ],
-              "policy": {
-                "timeout": "0.00:05:00",
-                "retry": 1,
-                "retryIntervalInSeconds": 15,
-                "secureOutput": false,
-                "secureInput": false
-              },
-              "userProperties": [],
-              "typeProperties": {
-                "storedProcedureName": "dbo.ecom_end_log_entry",
-                "storedProcedureParameters": {
-                  "jobid": {
-                    "value": {
-                      "value": "@int(item().jobid)",
-                      "type": "Expression"
-                    },
-                    "type": "Int"
-                  },
-                  "pipeline_id": {
-                    "value": {
-                      "value": "@if(equals(toUpper(item().SourceType),'SQL'),'PL_SQL_TO_RAW',if(equals(toUpper(item().SourceType),'RESTAPI'),'PL_RESTAPI_TO_RAW',if(equals(toUpper(item().SourceType),'CSV'),'PL_CSV_TO_RAW',if(equals(toUpper(item().SourceType),'EXCEL'),'PL_EXCEL_TO_RAW',if(equals(toUpper(item().SourceType),'BULK'),'PL_BULK_TO_RAW',if(equals(toUpper(item().SourceType),'SFTP'),'PL_SFTP_TO_RAW',if(equals(toUpper(item().SourceType),'JSON'),'PL_JSON_TO_RAW',if(equals(toUpper(item().SourceType),'SNOWFLAKE'),'PL_SNOWFLAKE_METADATA_ORCHESTRATOR','PL_Test_Intentional_Failure'))))))))",
-                      "type": "Expression"
-                    },
-                    "type": "String"
-                  },
-                  "error": {
-                    "value": {
-                      "value": "@string(activity('SW_Route_Source_Type').error.message)",
-                      "type": "Expression"
-                    },
-                    "type": "String"
-                  },
-                  "master_run_id": {
-                    "value": {
-                      "value": "@pipeline().RunId",
-                      "type": "Expression"
-                    },
-                    "type": "String"
-                  },
-                  "activity_name": {
-                    "value": {
-                      "value": "SW_Route_Source_Type",
-                      "type": "Expression"
-                    },
-                    "type": "String"
-                  },
-                  "error_code": {
-                    "value": {
-                      "value": "CHILD_PIPELINE_FAILED",
-                      "type": "Expression"
-                    },
-                    "type": "String"
-                  },
-                  "child_run_id": {
-                    "value": null,
-                    "type": "String"
-                  }
-                }
-              },
-              "linkedServiceName": {
-                "referenceName": "LS_AzureSQLDB",
-                "type": "LinkedServiceReference"
-              }
-            },
-            {
-              "name": "FAIL_Child_Job",
-              "type": "Fail",
-              "dependsOn": [
-                {
-                  "activity": "SP_End_Job_Log_Failure",
-                  "dependencyConditions": [
-                    "Succeeded"
-                  ]
-                }
-              ],
-              "userProperties": [],
-              "typeProperties": {
-                "message": {
-                  "value": "@concat('Child pipeline failed for jobid: ',string(item().jobid),'. Check dbo.ecom_tbl_log_dtls for details.')",
-                  "type": "Expression"
-                },
-                "errorCode": "CHILD_PIPELINE_FAILED"
-              }
             }
           ],
           "batchCount": 3
+        }
+      },
+      {
+        "name": "IF_Test_Failure",
+        "type": "IfCondition",
+        "dependsOn": [
+          {
+            "activity": "FE_Process_Jobs",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "userProperties": [],
+        "typeProperties": {
+          "expression": {
+            "value": "@equals(pipeline().parameters.pEnableFailureTest, true)",
+            "type": "Expression"
+          },
+          "ifTrueActivities": [
+            {
+              "name": "FAIL_Intentional_Test_Failure",
+              "type": "Fail",
+              "dependsOn": [],
+              "userProperties": [],
+              "typeProperties": {
+                "message": "Intentional failure for validating master pipeline failure logging.",
+                "errorCode": "INTENTIONAL_TEST_FAILURE"
+              }
+            }
+          ],
+          "ifFalseActivities": []
         }
       },
       {
@@ -592,7 +2041,7 @@
         "type": "SqlServerStoredProcedure",
         "dependsOn": [
           {
-            "activity": "FE_Process_Jobs",
+            "activity": "IF_Test_Failure",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -769,6 +2218,70 @@
           "referenceName": "LS_AzureSQLDB",
           "type": "LinkedServiceReference"
         }
+      },
+      {
+        "name": "SP_End_Master_Log_Failure_Test",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [
+          {
+            "activity": "IF_Test_Failure",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.00:05:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 15,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "storedProcedureName": "dbo.ecom_end_master_log",
+          "storedProcedureParameters": {
+            "master_pipeline_id": {
+              "value": {
+                "value": "@pipeline().Pipeline",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "master_run_id": {
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "error": {
+              "value": {
+                "value": "@string(activity('IF_Test_Failure').error.message)",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "activity_name": {
+              "value": {
+                "value": "IF_Test_Failure",
+                "type": "String"
+              },
+              "type": "String"
+            },
+            "error_code": {
+              "value": {
+                "value": "INTENTIONAL_TEST_FAILURE",
+                "type": "String"
+              },
+              "type": "String"
+            }
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "LS_AzureSQLDB",
+          "type": "LinkedServiceReference"
+        }
       }
     ],
     "annotations": [
@@ -784,6 +2297,10 @@
       "pBatchEndDate": {
         "type": "string",
         "defaultValue": "2017-01-01"
+      },
+      "pEnableFailureTest": {
+        "type": "bool",
+        "defaultValue": false
       }
     }
   }
