@@ -14,7 +14,7 @@ INCLUDE_EXISTING_FILES = True
 SCHEMA_EVOLUTION_MODE = "addNewColumns"
 
 # Start with orders only. Expand this list after the first test succeeds.
-ENTITIES_TO_PROCESS = ["orders"]
+ENTITIES_TO_PROCESS = RAW_ENTITIES
 
 BATCH_ID = (
     datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
@@ -185,6 +185,7 @@ def load_raw_to_bronze(entity):
 
 # COMMAND ----------
 
+
 results = []
 
 for entity in ENTITIES_TO_PROCESS:
@@ -206,6 +207,7 @@ for entity in ENTITIES_TO_PROCESS:
         })
 
 # COMMAND ----------
+
 
 # Register successful Bronze Delta outputs in Unity Catalog.
 # This cell is intentionally self-contained; it does not depend on function-local variables.
@@ -250,9 +252,11 @@ else:
 
 # COMMAND ----------
 
-results_df = spark.createDataFrame(results)
-display(results_df)
-
+if registration_results:
+    display(spark.createDataFrame(registration_results))
+else:
+    print("No successful Bronze tables available for registration.")
+    
 success_count = sum(1 for r in results if r["status"] == "SUCCESS")
 failure_count = sum(1 for r in results if r["status"] == "FAILED")
 
