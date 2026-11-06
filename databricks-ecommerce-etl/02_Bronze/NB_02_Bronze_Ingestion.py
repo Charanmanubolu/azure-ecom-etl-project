@@ -4,92 +4,172 @@
 # COMMAND ----------
 
 from datetime import datetime, timezone
+from uuid import uuid4
+
+from delta.tables import DeltaTable
 from pyspark.sql import functions as F
 
-LOAD_MODE = "overwrite"  # Initial full load only
+# Auto Loader settings
+INCLUDE_EXISTING_FILES = True
+SCHEMA_EVOLUTION_MODE = "addNewColumns"
 
-BATCH_ID = datetime.now(timezone.utc).strftime(
-    "%Y%m%dT%H%M%S"
-)
+BATCH_ID = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S") + "_" + uuid4().hex[:8]
+
+# Keep Auto Loader state outside the Bronze Delta table folders.
+AUTOLOADER_ROOT = f"{CURATED_ROOT}_autoloader/bronze/"
 
 print("Batch ID:", BATCH_ID)
 print("Environment:", ENVIRONMENT)
 print("Catalog:", UC_CATALOG)
 print("Entities:", len(RAW_ENTITIES))
+print("Include existing raw files:", INCLUDE_EXISTING_FILES)
 
 # COMMAND ----------
 
 def load_raw_to_bronze(entity):
+    """
+    Incrementally ingest new raw Parquet files with Auto Loader.
+
+    The Auto Loader checkpoint tracks discovered files. The foreachBatch
+    write also checks _source_file in Bronze so a retry after a successful
+    Delta write but before checkpoint commit does not append the same file
+    again.
+    """
 
     source_path = RAW_ENTITY_PATHS[entity]
     target_path = BRONZE_ENTITY_PATHS[entity]
-
     target_table = f"{BRONZE_DB}.{entity}"
 
-    print(f"\nStarting ingestion: {entity}")
+    schema_path = f"{AUTOLOADER_ROOT}schemas/{entity}/"
+    checkpoint_path = f"{AUTOLOADER_ROOT}checkpoints/{entity}/"
+
+    print(f"\nStarting Auto Loader ingestion: {entity}")
     print("Source:", source_path)
     print("Target:", target_path)
+    print("Schema location:", schema_path)
+    print("Checkpoint:", checkpoint_path)
 
-    # Read all dated Parquet folders recursively
-    df = (
-        spark.read
-        .format("parquet")
-        .option("recursiveFileLookup", "true")
+    batch_metrics = {
+        "rows_written": 0,
+        "files_seen": 0,
+        "files_written": 0
+    }
+
+    def write_new_files(micro_batch_df, micro_batch_id):
+        if micro_batch_df.isEmpty():
+            return
+
+        # One source file is the idempotency unit for this raw-to-Bronze flow.
+        incoming_files = (
+            micro_batch_df
+            .select("_source_file")
+            .distinct()
+        )
+        batch_metrics["files_seen"] += incoming_files.count()
+
+        if DeltaTable.isDeltaTable(spark, target_path):
+            existing_bronze = spark.read.format("delta").load(target_path)
+
+            if "_source_file" not in existing_bronze.columns:
+                raise ValueError(
+                    f"Existing Bronze data for {entity} does not contain "
+                    "_source_file. Resolve the existing table before enabling "
+                    "Auto Loader to avoid duplicate ingestion."
+                )
+
+            existing_files = (
+                existing_bronze
+                .select("_source_file")
+                .distinct()
+            )
+
+            new_rows = micro_batch_df.join(
+                existing_files,
+                on="_source_file",
+                how="left_anti"
+            )
+        else:
+            new_rows = micro_batch_df
+
+        new_file_count = new_rows.select("_source_file").distinct().count()
+        new_row_count = new_rows.count()
+
+        if new_row_count == 0:
+            print(
+                f"Micro-batch {micro_batch_id}: no new files to append."
+            )
+            return
+
+        (
+            new_rows.write
+            .format("delta")
+            .mode("append")
+            .option("mergeSchema", "true")
+            .save(target_path)
+        )
+
+        batch_metrics["rows_written"] += new_row_count
+        batch_metrics["files_written"] += new_file_count
+
+        print(
+            f"Micro-batch {micro_batch_id}: "
+            f"appended {new_row_count} rows from {new_file_count} new files."
+        )
+
+    # Read Parquet files incrementally. Auto Loader persists discovery state
+    # in the per-entity checkpoint directory.
+    source_stream = (
+        spark.readStream
+        .format("cloudFiles")
+        .option("cloudFiles.format", "parquet")
+        .option("cloudFiles.schemaLocation", schema_path)
+        .option("cloudFiles.includeExistingFiles", str(INCLUDE_EXISTING_FILES).lower())
+        .option("cloudFiles.schemaEvolutionMode", SCHEMA_EVOLUTION_MODE)
         .load(source_path)
     )
 
-    source_count = df.count()
-
-    if source_count == 0:
-        raise ValueError(f"No records found for {entity}")
-
-    # Add ingestion metadata
-    df = (
-        df
+    enriched_stream = (
+        source_stream
         .withColumn("_ingested_at", F.current_timestamp())
         .withColumn("_source_file", F.col("_metadata.file_path"))
+        .withColumn(
+            "_source_file_modification_time",
+            F.col("_metadata.file_modification_time")
+        )
         .withColumn("_batch_id", F.lit(BATCH_ID))
     )
 
-    # Write Bronze Delta data
-    (
-        df.write
-        .format("delta")
-        .mode(LOAD_MODE)
-        .option("overwriteSchema", "true")
-        .save(target_path)
+    query = (
+        enriched_stream.writeStream
+        .foreachBatch(write_new_files)
+        .option("checkpointLocation", checkpoint_path)
+        .trigger(availableNow=True)
+        .start()
     )
 
-    # Register external Delta table
-    spark.sql(f"""
-        CREATE TABLE IF NOT EXISTS {target_table}
-        USING DELTA
-        LOCATION '{target_path}'
-    """)
+    query.awaitTermination()
 
-    # Validate target count
-    target_count = (
-        spark.read
-        .format("delta")
-        .load(target_path)
-        .count()
-    )
-
-    if source_count != target_count:
-        raise ValueError(
-            f"Count mismatch for {entity}: "
-            f"source={source_count}, target={target_count}"
-        )
+    # Register the external Delta table after the first successful write.
+    if DeltaTable.isDeltaTable(spark, target_path):
+        spark.sql(f"""
+            CREATE TABLE IF NOT EXISTS {target_table}
+            USING DELTA
+            LOCATION '{target_path}'
+        """)
+    else:
+        print(f"No new data found for {entity}; Bronze table was not changed.")
 
     print(f"SUCCESS: {entity}")
-    print("Source count:", source_count)
-    print("Target count:", target_count)
+    print("Rows appended:", batch_metrics["rows_written"])
+    print("New files appended:", batch_metrics["files_written"])
+    print("Files encountered:", batch_metrics["files_seen"])
 
     return {
         "entity": entity,
         "status": "SUCCESS",
-        "source_count": source_count,
-        "target_count": target_count,
+        "rows_written": batch_metrics["rows_written"],
+        "files_written": batch_metrics["files_written"],
+        "files_seen": batch_metrics["files_seen"],
         "target_table": target_table
     }
 
@@ -98,21 +178,19 @@ def load_raw_to_bronze(entity):
 results = []
 
 for entity in RAW_ENTITIES:
-
     try:
-        result = load_raw_to_bronze(entity)
-        results.append(result)
+        results.append(load_raw_to_bronze(entity))
 
     except Exception as e:
-
         print(f"FAILED: {entity}")
         print(str(e))
 
         results.append({
             "entity": entity,
             "status": "FAILED",
-            "source_count": None,
-            "target_count": None,
+            "rows_written": 0,
+            "files_written": 0,
+            "files_seen": 0,
             "target_table": f"{BRONZE_DB}.{entity}",
             "error": str(e)[:1000]
         })
@@ -120,16 +198,10 @@ for entity in RAW_ENTITIES:
 # COMMAND ----------
 
 results_df = spark.createDataFrame(results)
-
 display(results_df)
 
-success_count = sum(
-    1 for r in results if r["status"] == "SUCCESS"
-)
-
-failure_count = sum(
-    1 for r in results if r["status"] == "FAILED"
-)
+success_count = sum(1 for r in results if r["status"] == "SUCCESS")
+failure_count = sum(1 for r in results if r["status"] == "FAILED")
 
 print("Total entities:", len(RAW_ENTITIES))
 print("Successful:", success_count)
