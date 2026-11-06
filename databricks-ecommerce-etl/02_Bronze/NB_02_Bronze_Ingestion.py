@@ -48,9 +48,8 @@ def load_raw_to_bronze(entity):
 
     source_path = RAW_ENTITY_PATHS[entity]
     target_path = BRONZE_ENTITY_PATHS[entity]
-    # BRONZE_DB may be configured as either "bronze" or "catalog.bronze".
-    bronze_schema = BRONZE_DB.split(".")[-1].strip("`")
-    target_table = f"{UC_CATALOG}.{bronze_schema}.{entity}"
+    bronze_schema = BRONZE_SCHEMA
+    target_table = f"{UC_CATALOG}.{BRONZE_SCHEMA}.{entity}"
     target_table_sql = f"`{entity}`"
 
     schema_path = f"{AUTOLOADER_ROOT}schemas/{entity}/"
@@ -202,7 +201,7 @@ for entity in ENTITIES_TO_PROCESS:
             "rows_written": 0,
             "files_written": 0,
             "files_seen": 0,
-            "target_table": f"{UC_CATALOG}.{BRONZE_DB}.{entity}",
+            "target_table": f"{UC_CATALOG}.{BRONZE_SCHEMA}.{entity}",
             "error": str(e)[:1000]
         })
 
@@ -211,9 +210,9 @@ for entity in ENTITIES_TO_PROCESS:
 # Register successful Bronze Delta outputs in Unity Catalog.
 # This cell is intentionally self-contained; it does not depend on function-local variables.
 
-bronze_schema = BRONZE_DB.split(".")[-1].strip("`")
+bronze_schema = BRONZE_SCHEMA
 spark.sql(f"USE CATALOG `{UC_CATALOG}`")
-spark.sql(f"USE SCHEMA `{bronze_schema}`")
+spark.sql(f"USE SCHEMA `{BRONZE_SCHEMA}`")
 
 registration_results = []
 
@@ -244,7 +243,10 @@ for result in results:
         })
         print(f"No Bronze Delta data exists yet for {entity}.")
 
-display(spark.createDataFrame(registration_results))
+if registration_results:
+    display(spark.createDataFrame(registration_results))
+else:
+    print("No successful Bronze tables available for registration.")
 
 # COMMAND ----------
 
