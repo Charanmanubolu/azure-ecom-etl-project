@@ -48,7 +48,9 @@ def load_raw_to_bronze(entity):
 
     source_path = RAW_ENTITY_PATHS[entity]
     target_path = BRONZE_ENTITY_PATHS[entity]
-    target_table = f"{UC_CATALOG}.{BRONZE_DB}.{entity}"
+    # BRONZE_DB may be configured as either "bronze" or "catalog.bronze".
+    bronze_schema = BRONZE_DB.split(".")[-1].strip("`")
+    target_table = f"{UC_CATALOG}.{bronze_schema}.{entity}"
     target_table_sql = f"`{entity}`"
 
     schema_path = f"{AUTOLOADER_ROOT}schemas/{entity}/"
@@ -171,12 +173,14 @@ def load_raw_to_bronze(entity):
         # Set the Unity Catalog context, then use a one-part table name.
         # This avoids spark_catalog single-part namespace resolution errors.
         spark.sql(f"USE CATALOG `{UC_CATALOG}`")
-        spark.sql(f"USE SCHEMA `{BRONZE_DB}`")
+        spark.sql(f"USE SCHEMA `{bronze_schema}`")
+        
         spark.sql(f"""
             CREATE TABLE IF NOT EXISTS {target_table_sql}
             USING DELTA
             LOCATION '{target_path}'
         """)
+        print(f"Registered table: {target_table}")
     else:
         print(f"No Bronze Delta data exists yet for {entity}.")
 
