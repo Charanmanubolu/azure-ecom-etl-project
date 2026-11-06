@@ -168,21 +168,7 @@ def load_raw_to_bronze(entity):
 
     query.awaitTermination()
 
-    # Register the external Delta table after a successful write.
-    if DeltaTable.isDeltaTable(spark, target_path):
-        # Set the Unity Catalog context, then use a one-part table name.
-        # This avoids spark_catalog single-part namespace resolution errors.
-        spark.sql(f"USE CATALOG `{UC_CATALOG}`")
-        spark.sql(f"USE SCHEMA `{bronze_schema}`")
-        
-        spark.sql(f"""
-            CREATE TABLE IF NOT EXISTS {target_table_sql}
-            USING DELTA
-            LOCATION '{target_path}'
-        """)
-        print(f"Registered table: {target_table}")
-    else:
-        print(f"No Bronze Delta data exists yet for {entity}.")
+    # Table registration is handled in the dedicated cell after ingestion.
 
     print(f"Completed: {entity}")
     print("Rows appended:", batch_metrics["rows_written"])
@@ -219,6 +205,46 @@ for entity in ENTITIES_TO_PROCESS:
             "target_table": f"{UC_CATALOG}.{BRONZE_DB}.{entity}",
             "error": str(e)[:1000]
         })
+
+# COMMAND ----------
+
+# Register successful Bronze Delta outputs in Unity Catalog.
+# This cell is intentionally self-contained; it does not depend on function-local variables.
+
+bronze_schema = BRONZE_DB.split(".")[-1].strip("`")
+spark.sql(f"USE CATALOG `{UC_CATALOG}`")
+spark.sql(f"USE SCHEMA `{bronze_schema}`")
+
+registration_results = []
+
+for result in results:
+    if result["status"] != "SUCCESS":
+        continue
+
+    entity = result["entity"]
+    target_path = BRONZE_ENTITY_PATHS[entity]
+
+    if DeltaTable.isDeltaTable(spark, target_path):
+        spark.sql(f"""
+            CREATE TABLE IF NOT EXISTS `{entity}`
+            USING DELTA
+            LOCATION '{target_path}'
+        """)
+        registration_results.append({
+            "entity": entity,
+            "table": f"{UC_CATALOG}.{bronze_schema}.{entity}",
+            "status": "REGISTERED"
+        })
+        print(f"Registered table: {UC_CATALOG}.{bronze_schema}.{entity}")
+    else:
+        registration_results.append({
+            "entity": entity,
+            "table": f"{UC_CATALOG}.{bronze_schema}.{entity}",
+            "status": "NO_DELTA_DATA"
+        })
+        print(f"No Bronze Delta data exists yet for {entity}.")
+
+display(spark.createDataFrame(registration_results))
 
 # COMMAND ----------
 
