@@ -49,6 +49,7 @@ def load_raw_to_bronze(entity):
     source_path = RAW_ENTITY_PATHS[entity]
     target_path = BRONZE_ENTITY_PATHS[entity]
     target_table = f"{UC_CATALOG}.{BRONZE_DB}.{entity}"
+    target_table_sql = f"`{entity}`"
 
     schema_path = f"{AUTOLOADER_ROOT}schemas/{entity}/"
     checkpoint_path = f"{AUTOLOADER_ROOT}checkpoints/{entity}/"
@@ -167,8 +168,12 @@ def load_raw_to_bronze(entity):
 
     # Register the external Delta table after a successful write.
     if DeltaTable.isDeltaTable(spark, target_path):
+        # Set the Unity Catalog context, then use a one-part table name.
+        # This avoids spark_catalog single-part namespace resolution errors.
+        spark.sql(f"USE CATALOG `{UC_CATALOG}`")
+        spark.sql(f"USE SCHEMA `{BRONZE_DB}`")
         spark.sql(f"""
-            CREATE TABLE IF NOT EXISTS {target_table}
+            CREATE TABLE IF NOT EXISTS {target_table_sql}
             USING DELTA
             LOCATION '{target_path}'
         """)
