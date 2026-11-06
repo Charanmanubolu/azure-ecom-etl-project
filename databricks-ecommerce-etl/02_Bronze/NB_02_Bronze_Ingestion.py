@@ -9,19 +9,26 @@ from uuid import uuid4
 from delta.tables import DeltaTable
 from pyspark.sql import functions as F
 
-# Auto Loader settings
+# Auto Loader configuration
 INCLUDE_EXISTING_FILES = True
 SCHEMA_EVOLUTION_MODE = "addNewColumns"
 
-BATCH_ID = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S") + "_" + uuid4().hex[:8]
+# Start with orders only. Expand this list after the first test succeeds.
+ENTITIES_TO_PROCESS = ["orders"]
 
-# Keep Auto Loader state outside the Bronze Delta table folders.
+BATCH_ID = (
+    datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    + "_"
+    + uuid4().hex[:8]
+)
+
+# Checkpoint and schema state are kept separate from Bronze Delta table folders.
 AUTOLOADER_ROOT = f"{CURATED_ROOT}_autoloader/bronze/"
 
 print("Batch ID:", BATCH_ID)
 print("Environment:", ENVIRONMENT)
 print("Catalog:", UC_CATALOG)
-print("Entities:", len(RAW_ENTITIES))
+print("Entities selected:", ENTITIES_TO_PROCESS)
 print("Include existing raw files:", INCLUDE_EXISTING_FILES)
 
 # COMMAND ----------
@@ -30,15 +37,18 @@ def load_raw_to_bronze(entity):
     """
     Incrementally ingest new raw Parquet files with Auto Loader.
 
-    The Auto Loader checkpoint tracks discovered files. The foreachBatch
-    write also checks _source_file in Bronze so a retry after a successful
-    Delta write but before checkpoint commit does not append the same file
-    again.
+    Auto Loader tracks discovered files in its checkpoint. Before appending,
+    this function checks the existing Bronze Delta data by _source_file.
+    This makes a retry safe if the Delta append succeeded but the streaming
+    checkpoint was not committed.
     """
+
+    if entity not in RAW_ENTITY_PATHS or entity not in BRONZE_ENTITY_PATHS:
+        raise ValueError(f"Entity '{entity}' is missing from project configuration.")
 
     source_path = RAW_ENTITY_PATHS[entity]
     target_path = BRONZE_ENTITY_PATHS[entity]
-    target_table = f"{BRONZE_DB}.{entity}"
+    target_table = f"{UC_CATALOG}.{BRONZE_DB}.{entity}"
 
     schema_path = f"{AUTOLOADER_ROOT}schemas/{entity}/"
     checkpoint_path = f"{AUTOLOADER_ROOT}checkpoints/{entity}/"
@@ -57,29 +67,31 @@ def load_raw_to_bronze(entity):
 
     def write_new_files(micro_batch_df, micro_batch_id):
         if micro_batch_df.isEmpty():
+            print(f"Micro-batch {micro_batch_id}: empty batch.")
             return
 
-        # One source file is the idempotency unit for this raw-to-Bronze flow.
-        incoming_files = (
+        incoming_file_count = (
             micro_batch_df
             .select("_source_file")
             .distinct()
+            .count()
         )
-        batch_metrics["files_seen"] += incoming_files.count()
+        batch_metrics["files_seen"] += incoming_file_count
 
         if DeltaTable.isDeltaTable(spark, target_path):
             existing_bronze = spark.read.format("delta").load(target_path)
 
             if "_source_file" not in existing_bronze.columns:
                 raise ValueError(
-                    f"Existing Bronze data for {entity} does not contain "
-                    "_source_file. Resolve the existing table before enabling "
-                    "Auto Loader to avoid duplicate ingestion."
+                    f"Existing Bronze Delta data for '{entity}' has no "
+                    "'_source_file' column. Stop here and resolve the existing "
+                    "table before enabling incremental ingestion."
                 )
 
             existing_files = (
                 existing_bronze
                 .select("_source_file")
+                .where(F.col("_source_file").isNotNull())
                 .distinct()
             )
 
@@ -96,10 +108,13 @@ def load_raw_to_bronze(entity):
 
         if new_row_count == 0:
             print(
-                f"Micro-batch {micro_batch_id}: no new files to append."
+                f"Micro-batch {micro_batch_id}: all encountered files "
+                "are already present in Bronze; nothing appended."
             )
             return
 
+        # Append only. mergeSchema adds _source_file_modification_time to
+        # existing Bronze Delta tables that were created before this column.
         (
             new_rows.write
             .format("delta")
@@ -112,18 +127,19 @@ def load_raw_to_bronze(entity):
         batch_metrics["files_written"] += new_file_count
 
         print(
-            f"Micro-batch {micro_batch_id}: "
-            f"appended {new_row_count} rows from {new_file_count} new files."
+            f"Micro-batch {micro_batch_id}: appended {new_row_count} rows "
+            f"from {new_file_count} new files."
         )
 
-    # Read Parquet files incrementally. Auto Loader persists discovery state
-    # in the per-entity checkpoint directory.
     source_stream = (
         spark.readStream
         .format("cloudFiles")
         .option("cloudFiles.format", "parquet")
         .option("cloudFiles.schemaLocation", schema_path)
-        .option("cloudFiles.includeExistingFiles", str(INCLUDE_EXISTING_FILES).lower())
+        .option(
+            "cloudFiles.includeExistingFiles",
+            str(INCLUDE_EXISTING_FILES).lower()
+        )
         .option("cloudFiles.schemaEvolutionMode", SCHEMA_EVOLUTION_MODE)
         .load(source_path)
     )
@@ -149,7 +165,7 @@ def load_raw_to_bronze(entity):
 
     query.awaitTermination()
 
-    # Register the external Delta table after the first successful write.
+    # Register the external Delta table after a successful write.
     if DeltaTable.isDeltaTable(spark, target_path):
         spark.sql(f"""
             CREATE TABLE IF NOT EXISTS {target_table}
@@ -157,9 +173,9 @@ def load_raw_to_bronze(entity):
             LOCATION '{target_path}'
         """)
     else:
-        print(f"No new data found for {entity}; Bronze table was not changed.")
+        print(f"No Bronze Delta data exists yet for {entity}.")
 
-    print(f"SUCCESS: {entity}")
+    print(f"Completed: {entity}")
     print("Rows appended:", batch_metrics["rows_written"])
     print("New files appended:", batch_metrics["files_written"])
     print("Files encountered:", batch_metrics["files_seen"])
@@ -177,7 +193,7 @@ def load_raw_to_bronze(entity):
 
 results = []
 
-for entity in RAW_ENTITIES:
+for entity in ENTITIES_TO_PROCESS:
     try:
         results.append(load_raw_to_bronze(entity))
 
@@ -191,7 +207,7 @@ for entity in RAW_ENTITIES:
             "rows_written": 0,
             "files_written": 0,
             "files_seen": 0,
-            "target_table": f"{BRONZE_DB}.{entity}",
+            "target_table": f"{UC_CATALOG}.{BRONZE_DB}.{entity}",
             "error": str(e)[:1000]
         })
 
@@ -203,6 +219,6 @@ display(results_df)
 success_count = sum(1 for r in results if r["status"] == "SUCCESS")
 failure_count = sum(1 for r in results if r["status"] == "FAILED")
 
-print("Total entities:", len(RAW_ENTITIES))
+print("Total entities selected:", len(ENTITIES_TO_PROCESS))
 print("Successful:", success_count)
 print("Failed:", failure_count)
