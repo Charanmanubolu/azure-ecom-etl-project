@@ -148,13 +148,17 @@ Implementation details:
 
 ### Stage 5 — Silver transformations
 
-**Status: design/inspection in progress; implementation not yet complete.**
+**Status: implementation committed to GitHub; Databricks execution and data validation are pending.**
 
-Placeholder notebook:
+Notebook:
 
-`databricks-ecommerce-etl/03_Silver/NB_03_Silver_Transformation.sql`
+`databricks-ecommerce-etl/03_Silver/NB_03_Silver_Transformation.py`
 
-The notebook currently contains only the Databricks notebook source marker. Actual Bronze schemas and counts have been inspected. Key findings:
+The notebook imports the shared project configuration and processes all 11 configured entities into managed Silver Delta tables. It includes explicit business keys, source-column normalization (including the generic `Prop_0...` fields in customer, payment and review Bronze tables), required-column checks, conservative type casts, invalid-row quarantine, null-key rejection, conflicting-payload detection before each entity MERGE, deterministic duplicate collapse, idempotent Delta MERGE, and processing audit metrics.
+
+Unsafe schema/key conflicts stop the notebook rather than being silently skipped. The notebook has passed a local Python syntax compilation check; it has **not** yet been executed against the Databricks workspace. The first execution is the required integration test.
+
+Actual Bronze schemas and counts have been inspected. Key findings:
 
 | Entity | Observed Bronze rows | Distinct business-key count from inspection | Finding / proposed Silver handling |
 |---|---:|---:|---|
