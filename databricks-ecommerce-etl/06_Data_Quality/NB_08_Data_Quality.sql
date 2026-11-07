@@ -200,13 +200,16 @@ ORDER BY status DESC, table_name, check_name;
 
 -- Fail the notebook when any check fails. ADF can use this activity status
 -- to stop downstream tasks and mark the pipeline run as failed.
+SELECT raise_error(concat(
+    'Data quality checks failed: ',
+    cast(count_if(status = 'FAIL') as STRING),
+    ' check(s). Review gold.data_quality_results for details.'
+))
+FROM dq_current_results
+HAVING count_if(status = 'FAIL') > 0;
+
 SELECT CASE
-    WHEN count_if(status = 'FAIL') > 0
-    THEN raise_error(concat(
-        'Data quality checks failed: ',
-        cast(count_if(status = 'FAIL') as STRING),
-        ' check(s). Review gold.data_quality_results for details.'
-    ))
-    ELSE 'All data quality checks passed.'
+    WHEN count_if(status = 'FAIL') = 0 THEN 'All data quality checks passed.'
+    ELSE 'Data quality checks failed.'
 END AS data_quality_status
 FROM dq_current_results;
