@@ -72,13 +72,13 @@ def load_raw_to_bronze(entity):
             print(f"Micro-batch {micro_batch_id}: empty batch.")
             return
 
-        incoming_file_count = (
+        incoming_files = (
             micro_batch_df
-            .select("_source_file")
+            .select("_source_file", "_source_file_modification_time")
+            .where(F.col("_source_file").isNotNull())
             .distinct()
-            .count()
         )
-        batch_metrics["files_seen"] += incoming_file_count
+        batch_metrics["files_seen"] += incoming_files.select("_source_file").distinct().count()
 
         if DeltaTable.isDeltaTable(spark, target_path):
             existing_bronze = spark.read.format("delta").load(target_path)
@@ -90,17 +90,71 @@ def load_raw_to_bronze(entity):
                     "table before enabling incremental ingestion."
                 )
 
+            if "_source_file_modification_time" not in existing_bronze.columns:
+                existing_bronze = existing_bronze.withColumn(
+                    "_source_file_modification_time",
+                    F.lit(None).cast("timestamp")
+                )
+
             existing_files = (
                 existing_bronze
-                .select("_source_file")
+                .select("_source_file", "_source_file_modification_time")
                 .where(F.col("_source_file").isNotNull())
                 .distinct()
             )
 
-            new_rows = micro_batch_df.join(
+            # If a landed file was overwritten at the same path, remove its
+            # old Bronze rows so the updated file can replace them cleanly.
+            changed_file_paths = (
+                incoming_files.alias("new")
+                .join(
+                    existing_files.alias("old"),
+                    on="_source_file",
+                    how="inner"
+                )
+                .where(
+                    ~F.col("new._source_file_modification_time").eqNullSafe(
+                        F.col("old._source_file_modification_time")
+                    )
+                )
+                .select(F.col("new._source_file").alias("_source_file"))
+                .distinct()
+            )
+            changed_paths = [row["_source_file"] for row in changed_file_paths.collect()]
+
+            if changed_paths:
+                DeltaTable.forPath(spark, target_path).delete(
+                    F.col("_source_file").isin(changed_paths)
+                )
+                print(
+                    f"Micro-batch {micro_batch_id}: replacing changed source "
+                    f"file(s): {changed_paths}"
+                )
+
+            # Refresh after deleting prior versions of overwritten files.
+            existing_bronze = spark.read.format("delta").load(target_path)
+            if "_source_file_modification_time" not in existing_bronze.columns:
+                existing_bronze = existing_bronze.withColumn(
+                    "_source_file_modification_time",
+                    F.lit(None).cast("timestamp")
+                )
+
+            existing_files = (
+                existing_bronze
+                .select("_source_file", "_source_file_modification_time")
+                .where(F.col("_source_file").isNotNull())
+                .distinct()
+            )
+
+            new_file_versions = incoming_files.join(
                 existing_files,
-                on="_source_file",
+                on=["_source_file", "_source_file_modification_time"],
                 how="left_anti"
+            )
+            new_rows = micro_batch_df.join(
+                new_file_versions,
+                on=["_source_file", "_source_file_modification_time"],
+                how="inner"
             )
         else:
             new_rows = micro_batch_df
@@ -110,13 +164,12 @@ def load_raw_to_bronze(entity):
 
         if new_row_count == 0:
             print(
-                f"Micro-batch {micro_batch_id}: all encountered files "
-                "are already present in Bronze; nothing appended."
+                f"Micro-batch {micro_batch_id}: no new or changed file versions "
+                "to append."
             )
             return
 
-        # Append only. mergeSchema adds _source_file_modification_time to
-        # existing Bronze Delta tables that were created before this column.
+        # Append new files and replacement versions of overwritten files.
         (
             new_rows.write
             .format("delta")
@@ -137,6 +190,8 @@ def load_raw_to_bronze(entity):
         spark.readStream
         .format("cloudFiles")
         .option("cloudFiles.format", "parquet")
+        # Reprocess a source file if ADF overwrites it at the same path.
+        .option("cloudFiles.allowOverwrites", "true")
         .option("cloudFiles.schemaLocation", schema_path)
         .option(
             "cloudFiles.includeExistingFiles",
