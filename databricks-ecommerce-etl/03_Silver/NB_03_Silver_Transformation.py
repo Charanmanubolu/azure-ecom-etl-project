@@ -243,7 +243,7 @@ def process_entity(entity):
              .whenNotMatchedInsert(values=assignments).execute())
         else:
             counts["inserted_rows"] = counts["accepted_rows"]
-            (staged.write.format("delta").mode("errorifexists").saveAsTable(target_table))
+            (staged.write.format("delta").saveAsTable(target_table))
         append_audit(entity, "SUCCESS", counts, started_at)
         return {"entity": entity, "status": "SUCCESS", **counts}
     except Exception as exc:
