@@ -80,9 +80,12 @@ def write_quarantine(entity, rejected, reason_col="_dq_reason"):
     if rejected.isEmpty():
         return 0
     payload_cols = [c for c in rejected.columns if c != reason_col]
+    identity_cols = [c for c in payload_cols if c not in AUDIT_COLUMNS]
     serialized = F.to_json(F.struct(*[F.col(c) for c in payload_cols]))
+    identity_json = F.to_json(F.struct(*[F.col(c) for c in identity_cols]))
     q = (rejected.withColumn("_record_json", serialized)
-         .withColumn("_quarantine_id", F.sha2(F.concat_ws("||", F.lit(entity), F.col(reason_col), F.col("_record_json")), 256))
+         .withColumn("_identity_json", identity_json)
+         .withColumn("_quarantine_id", F.sha2(F.concat_ws("||", F.lit(entity), F.col(reason_col), F.col("_identity_json")), 256))
          .select(F.col("_quarantine_id").alias("quarantine_id"),
                  F.lit(entity).alias("entity"), F.col(reason_col).alias("reason"),
                  F.col("_record_json").alias("record_json"),
@@ -96,6 +99,7 @@ def write_quarantine(entity, rejected, reason_col="_dq_reason"):
 
 def normalize_columns(entity, source):
     df = source
+    removed_header_rows = 0
     # These three Bronze entities retain generic Parquet field names from the source copy.
     prop_mappings = {
         "customer": ["customer_id", "customer_unique_id", "customer_zip_code_prefix", "customer_city", "customer_state"],
@@ -124,12 +128,18 @@ def normalize_columns(entity, source):
                 df = df.withColumnRenamed(old, new)
     # Older CSV-derived snapshots contain the original header as a data row.
     if entity == "customer" and "customer_id" in df.columns:
-        df = df.filter(F.col("customer_id") != F.lit("customer_id"))
+        header_condition = F.col("customer_id") == F.lit("customer_id")
+        removed_header_rows += df.filter(header_condition).count()
+        df = df.filter(~header_condition)
     if entity == "order_payments" and "order_id" in df.columns:
-        df = df.filter(F.col("order_id") != F.lit("order_id"))
+        header_condition = F.col("order_id") == F.lit("order_id")
+        removed_header_rows += df.filter(header_condition).count()
+        df = df.filter(~header_condition)
     if entity == "order_reviews" and "review_id" in df.columns:
-        df = df.filter(F.col("review_id") != F.lit("review_id"))
-    return df
+        header_condition = F.col("review_id") == F.lit("review_id")
+        removed_header_rows += df.filter(header_condition).count()
+        df = df.filter(~header_condition)
+    return df, removed_header_rows
 
 def transform_types(entity, df):
     bad_conditions = []
@@ -163,7 +173,8 @@ def process_entity(entity):
         counts["source_rows"] = source.count()
         if counts["source_rows"] == 0:
             raise ValueError(f"Bronze source is empty: {source_table}")
-        df = normalize_columns(entity, source)
+        df, removed_header_rows = normalize_columns(entity, source)
+        counts["rejected_rows"] += removed_header_rows
         required = ENTITY_KEYS[entity]
         required_columns = {
             "category_translation": ["product_category_name", "product_category_name_english"],
