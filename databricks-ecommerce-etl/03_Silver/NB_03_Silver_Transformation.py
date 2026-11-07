@@ -33,9 +33,10 @@ ENTITY_KEYS = {
 # Explicit, conservative casts. Postal codes and identifiers remain strings.
 TYPE_CASTS = {
     "customer": {"customer_zip_code_prefix": "string"},
-    "order_items": {"order_item_id": "int", "price": "decimal(18,2)", "freight_value": "decimal(18,2)"},
+    "order_items": {"order_item_id": "int", "shipping_limit_date": "timestamp", "price": "decimal(18,2)", "freight_value": "decimal(18,2)"},
     "order_payments": {"payment_sequential": "int", "payment_installments": "int", "payment_value": "decimal(18,2)"},
-    "order_reviews": {"review_score": "int"},
+    "order_reviews": {"review_score": "int", "review_creation_date": "timestamp", "review_answer_timestamp": "timestamp"},
+    "orders": {"order_purchase_timestamp": "timestamp", "order_approved_at": "timestamp", "order_delivered_carrier_date": "timestamp", "order_delivered_customer_date": "timestamp", "order_estimated_delivery_date": "timestamp"},
     "products": {"product_name_length": "int", "product_description_length": "int", "product_photos_qty": "int", "product_weight_g": "decimal(18,2)", "product_length_cm": "decimal(18,2)", "product_height_cm": "decimal(18,2)", "product_width_cm": "decimal(18,2)"},
     "sellers": {"seller_zip_code_prefix": "string"},
     "geolocation": {"geolocation_zip_code_prefix": "string", "geolocation_lat": "decimal(10,7)", "geolocation_lng": "decimal(10,7)"},
@@ -81,6 +82,20 @@ def write_quarantine(entity, rejected, reason_col="_dq_reason"):
 
 def normalize_columns(entity, source):
     df = source
+    # These three Bronze entities retain generic Parquet field names from the source copy.
+    prop_mappings = {
+        "customer": ["customer_id", "customer_unique_id", "customer_zip_code_prefix", "customer_city", "customer_state"],
+        "order_payments": ["order_id", "payment_sequential", "payment_type", "payment_installments", "payment_value"],
+        "order_reviews": ["review_id", "order_id", "review_score", "review_comment_title", "review_comment_message", "review_creation_date", "review_answer_timestamp"],
+    }
+    if entity in prop_mappings and "Prop_0" in df.columns:
+        expected = prop_mappings[entity]
+        source_props = [f"Prop_{i}" for i in range(len(expected))]
+        missing_props = [c for c in source_props if c not in df.columns]
+        if missing_props:
+            raise ValueError(f"{entity}: incomplete generic source columns: {missing_props}")
+        for old, new in zip(source_props, expected):
+            df = df.withColumnRenamed(old, new)
     if entity == "order_items":
         for old, new in [("ORDER_ID", "order_id"), ("ORDER_ITEM_ID", "order_item_id"),
                          ("PRODUCT_ID", "product_id"), ("SELLER_ID", "seller_id"),
@@ -136,9 +151,22 @@ def process_entity(entity):
             raise ValueError(f"Bronze source is empty: {source_table}")
         df = normalize_columns(entity, source)
         required = ENTITY_KEYS[entity]
-        missing = [c for c in required if c not in df.columns]
+        required_columns = {
+            "category_translation": ["product_category_name", "product_category_name_english"],
+            "customer": ["customer_id", "customer_unique_id", "customer_zip_code_prefix", "customer_city", "customer_state"],
+            "geolocation": ["geolocation_zip_code_prefix", "geolocation_lat", "geolocation_lng", "geolocation_city", "geolocation_state"],
+            "jsontest": ["_id"],
+            "order_items": ["order_id", "order_item_id", "product_id", "seller_id", "shipping_limit_date", "price", "freight_value"],
+            "order_payments": ["order_id", "payment_sequential", "payment_type", "payment_installments", "payment_value"],
+            "order_reviews": ["review_id", "order_id", "review_score", "review_comment_title", "review_comment_message", "review_creation_date", "review_answer_timestamp"],
+            "orders": ["order_id", "customer_id", "order_status", "order_purchase_timestamp", "order_approved_at", "order_delivered_carrier_date", "order_delivered_customer_date", "order_estimated_delivery_date"],
+            "product_category_name_translation": ["product_category_name", "product_category_name_english"],
+            "products": ["product_id", "product_category_name", "product_name_length", "product_description_length", "product_photos_qty", "product_weight_g", "product_length_cm", "product_height_cm", "product_width_cm"],
+            "sellers": ["seller_id", "seller_zip_code_prefix", "seller_city", "seller_state"],
+        }[entity]
+        missing = [c for c in required_columns if c not in df.columns]
         if missing:
-            raise ValueError(f"{entity}: missing business key columns: {missing}")
+            raise ValueError(f"{entity}: missing required source columns: {missing}")
         df, rejected_casts = transform_types(entity, df)
         write_quarantine(entity, rejected_casts)
         counts["rejected_rows"] += rejected_casts.count()
@@ -202,13 +230,10 @@ def process_entity(entity):
 ensure_support_tables()
 results = []
 for entity_name in RAW_ENTITIES:
-    try:
-        result = process_entity(entity_name)
-        results.append(result)
-        print(result)
-    except Exception as exc:
-        results.append({"entity": entity_name, "status": "FAILED", "error": str(exc)[:1000]})
-        print(f"FAILED: {entity_name}: {exc}")
+    # Structural errors and conflicting keys stop the run; they are not safe to skip.
+    result = process_entity(entity_name)
+    results.append(result)
+    print(result)
 
 display(spark.createDataFrame(results))
 
