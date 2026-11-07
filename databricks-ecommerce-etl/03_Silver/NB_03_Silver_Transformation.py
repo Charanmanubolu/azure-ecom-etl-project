@@ -179,6 +179,10 @@ def process_entity(entity):
         if counts["source_rows"] == 0:
             raise ValueError(f"Bronze source is empty: {source_table}")
         df, removed_header_rows = normalize_columns(entity, source)
+        # Bronze ingestion metadata is not part of the existing Silver business schema.
+        bronze_metadata = [c for c in ["_rescued_data", "_source_file_modification_time"] if c in df.columns]
+        if bronze_metadata:
+            df = df.drop(*bronze_metadata)
         counts["rejected_rows"] += removed_header_rows
         required = ENTITY_KEYS[entity]
         required_columns = {
