@@ -1,1 +1,15 @@
 -- Databricks notebook source
+-- MAGIC %md
+-- MAGIC # SCD Type 1 — Deferred
+-- MAGIC
+-- MAGIC This notebook is intentionally not implemented.
+-- MAGIC
+-- MAGIC The current Olist project does not have a confirmed requirement to maintain
+-- MAGIC historical attribute values. Silver currently provides the cleaned current
+-- MAGIC state, and the Gold star schema can be built without a separate SCD Type 1
+-- MAGIC processing step.
+-- MAGIC
+-- MAGIC Implement Type 1 only when a documented business rule requires selected
+-- MAGIC dimension attributes to be overwritten while retaining the latest value.
+-- MAGIC
+-- MAGIC See `README.md` in this folder before adding SCD logic.
