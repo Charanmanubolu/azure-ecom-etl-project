@@ -74,8 +74,6 @@ def write_quarantine(entity, rejected, reason_col="_dq_reason"):
                  F.col("_source_file").cast("string").alias("source_file"),
                  F.lit(RUN_ID).alias("run_id"), F.current_timestamp().alias("quarantined_at"))
          .dropDuplicates(["quarantine_id"]))
-    if DeltaTable.isDeltaTable(spark, SILVER_ROOT + "_quality/data_quality_quarantine"):
-        pass
     target = DeltaTable.forName(spark, QUARANTINE_TABLE)
     (target.alias("t").merge(q.alias("s"), "t.quarantine_id = s.quarantine_id")
      .whenNotMatchedInsertAll().execute())
@@ -142,7 +140,7 @@ def process_entity(entity):
         if missing:
             raise ValueError(f"{entity}: missing business key columns: {missing}")
         df, rejected_casts = transform_types(entity, df)
-        rejected_count = write_quarantine(entity, rejected_casts)
+        write_quarantine(entity, rejected_casts)
         counts["rejected_rows"] += rejected_casts.count()
         key_null = None
         for key in required:
@@ -175,7 +173,6 @@ def process_entity(entity):
         staged = (valid.withColumn("_row_num", F.row_number().over(window))
                   .filter(F.col("_row_num") == 1).drop("_row_num"))
         counts["accepted_rows"] = staged.count()
-        counts["rejected_rows"] += rejected_count
         target_table = f"{SILVER_DB}.{entity}"
         if spark.catalog.tableExists(target_table):
             target_df = spark.table(target_table)
