@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from delta.tables import DeltaTable
 from pyspark.sql import functions as F
+from pyspark.sql.types import LongType, StringType, StructField, StructType, TimestampType
 from pyspark.sql.window import Window
 
 RUN_ID = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S") + "_" + uuid4().hex[:8]
@@ -60,7 +61,20 @@ def append_audit(entity, status, counts, started_at, error_message=None):
             started_at, datetime.now(timezone.utc).replace(tzinfo=None), error_message)]
     cols = ["run_id", "entity", "status", "source_rows", "accepted_rows", "rejected_rows",
             "inserted_rows", "updated_rows", "started_at", "completed_at", "error_message"]
-    spark.createDataFrame(row, cols).write.format("delta").mode("append").saveAsTable(AUDIT_TABLE)
+    audit_schema = StructType([
+        StructField("run_id", StringType(), False),
+        StructField("entity", StringType(), False),
+        StructField("status", StringType(), False),
+        StructField("source_rows", LongType(), False),
+        StructField("accepted_rows", LongType(), False),
+        StructField("rejected_rows", LongType(), False),
+        StructField("inserted_rows", LongType(), False),
+        StructField("updated_rows", LongType(), False),
+        StructField("started_at", TimestampType(), False),
+        StructField("completed_at", TimestampType(), False),
+        StructField("error_message", StringType(), True),
+    ])
+    spark.createDataFrame(row, schema=audit_schema).write.format("delta").mode("append").saveAsTable(AUDIT_TABLE)
 
 def write_quarantine(entity, rejected, reason_col="_dq_reason"):
     if rejected.isEmpty():
