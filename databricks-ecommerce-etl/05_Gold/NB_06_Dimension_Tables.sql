@@ -39,9 +39,9 @@ USING (
 WHEN MATCHED THEN UPDATE SET customer_key=s.customer_key,
  customer_unique_id=s.customer_unique_id, customer_zip_code_prefix=s.customer_zip_code_prefix,
  customer_city=s.customer_city, customer_state=s.customer_state, updated_at=current_timestamp()
-WHEN NOT MATCHED THEN INSERT VALUES
- (s.customer_key,s.customer_id,s.customer_unique_id,s.customer_zip_code_prefix,
-  s.customer_city,s.customer_state,current_timestamp(),current_timestamp());
+WHEN NOT MATCHED THEN INSERT (customer_key, customer_id, customer_unique_id, customer_zip_code_prefix, customer_city, customer_state, created_at, updated_at) VALUES
+ (s.customer_key, s.customer_id, s.customer_unique_id, s.customer_zip_code_prefix,
+  s.customer_city, s.customer_state, current_timestamp(), current_timestamp());
 
 -- COMMAND ----------
 
@@ -68,7 +68,7 @@ WHEN MATCHED THEN UPDATE SET product_key=s.product_key,
  product_photos_qty=s.product_photos_qty, product_weight_g=s.product_weight_g,
  product_length_cm=s.product_length_cm, product_height_cm=s.product_height_cm,
  product_width_cm=s.product_width_cm, updated_at=current_timestamp()
-WHEN NOT MATCHED THEN INSERT VALUES
+WHEN NOT MATCHED THEN INSERT (product_key,product_id,product_category_name,product_category_name_english,product_name_length,product_description_length,product_photos_qty,product_weight_g,product_length_cm,product_height_cm,product_width_cm,created_at,updated_at) VALUES
  (s.product_key,s.product_id,s.product_category_name,s.product_category_name_english,
   s.product_name_length,s.product_description_length,s.product_photos_qty,s.product_weight_g,
   s.product_length_cm,s.product_height_cm,s.product_width_cm,current_timestamp(),current_timestamp());
@@ -86,7 +86,7 @@ USING (
 WHEN MATCHED THEN UPDATE SET seller_key=s.seller_key,
  seller_zip_code_prefix=s.seller_zip_code_prefix,seller_city=s.seller_city,
  seller_state=s.seller_state,updated_at=current_timestamp()
-WHEN NOT MATCHED THEN INSERT VALUES
+WHEN NOT MATCHED THEN INSERT (seller_key, seller_id, seller_zip_code_prefix, seller_city, seller_state, created_at, updated_at) VALUES
  (s.seller_key,s.seller_id,s.seller_zip_code_prefix,s.seller_city,s.seller_state,
   current_timestamp(),current_timestamp());
 

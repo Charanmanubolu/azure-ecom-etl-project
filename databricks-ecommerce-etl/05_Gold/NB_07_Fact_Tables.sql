@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS adb_ecom_dev_01.gold.fact_order_reviews (
 
 -- COMMAND ----------
 
+-- DBTITLE 1,Merge fact_orders
 -- Grain: one row per order_id.
 MERGE INTO adb_ecom_dev_01.gold.fact_orders t
 USING (
@@ -53,13 +54,18 @@ WHEN MATCHED THEN UPDATE SET customer_key=s.customer_key,
  delivered_customer_date_key=s.delivered_customer_date_key,
  estimated_delivery_date_key=s.estimated_delivery_date_key,
  order_status=s.order_status,order_count=s.order_count,updated_at=current_timestamp()
-WHEN NOT MATCHED THEN INSERT VALUES
+WHEN NOT MATCHED THEN INSERT
+ (order_id,customer_key,purchase_date_key,approved_date_key,
+  delivered_carrier_date_key,delivered_customer_date_key,estimated_delivery_date_key,
+  order_status,order_count,created_at,updated_at)
+VALUES
  (s.order_id,s.customer_key,s.purchase_date_key,s.approved_date_key,
   s.delivered_carrier_date_key,s.delivered_customer_date_key,s.estimated_delivery_date_key,
   s.order_status,s.order_count,current_timestamp(),current_timestamp());
 
 -- COMMAND ----------
 
+-- DBTITLE 1,Merge fact_order_items
 -- Grain: one row per (order_id, order_item_id).
 MERGE INTO adb_ecom_dev_01.gold.fact_order_items t
 USING (
@@ -82,13 +88,18 @@ WHEN MATCHED THEN UPDATE SET order_item_fact_key=s.order_item_fact_key,
  purchase_date_key=s.purchase_date_key,shipping_limit_date_key=s.shipping_limit_date_key,
  order_status=s.order_status,price=s.price,freight_value=s.freight_value,
  item_total=s.item_total,item_count=s.item_count,updated_at=current_timestamp()
-WHEN NOT MATCHED THEN INSERT VALUES
+WHEN NOT MATCHED THEN INSERT
+ (order_item_fact_key,order_id,order_item_id,customer_key,product_key,seller_key,
+  purchase_date_key,shipping_limit_date_key,order_status,price,freight_value,
+  item_total,item_count,created_at,updated_at)
+VALUES
  (s.order_item_fact_key,s.order_id,s.order_item_id,s.customer_key,s.product_key,s.seller_key,
   s.purchase_date_key,s.shipping_limit_date_key,s.order_status,s.price,s.freight_value,
   s.item_total,s.item_count,current_timestamp(),current_timestamp());
 
 -- COMMAND ----------
 
+-- DBTITLE 1,Merge fact_order_payments
 -- Grain: one row per (order_id, payment_sequential).
 MERGE INTO adb_ecom_dev_01.gold.fact_order_payments t
 USING (
@@ -105,13 +116,18 @@ WHEN MATCHED THEN UPDATE SET payment_fact_key=s.payment_fact_key,
  customer_key=s.customer_key,purchase_date_key=s.purchase_date_key,
  payment_type=s.payment_type,payment_installments=s.payment_installments,
  payment_value=s.payment_value,payment_count=s.payment_count,updated_at=current_timestamp()
-WHEN NOT MATCHED THEN INSERT VALUES
+WHEN NOT MATCHED THEN INSERT
+ (payment_fact_key,order_id,payment_sequential,customer_key,purchase_date_key,
+  payment_type,payment_installments,payment_value,payment_count,
+  created_at,updated_at)
+VALUES
  (s.payment_fact_key,s.order_id,s.payment_sequential,s.customer_key,s.purchase_date_key,
   s.payment_type,s.payment_installments,s.payment_value,s.payment_count,
   current_timestamp(),current_timestamp());
 
 -- COMMAND ----------
 
+-- DBTITLE 1,Merge fact_order_reviews
 -- Grain: one row per (review_id, order_id).
 MERGE INTO adb_ecom_dev_01.gold.fact_order_reviews t
 USING (
@@ -129,7 +145,11 @@ WHEN MATCHED THEN UPDATE SET review_fact_key=s.review_fact_key,
  customer_key=s.customer_key,review_creation_date_key=s.review_creation_date_key,
  review_answer_date_key=s.review_answer_date_key,review_score=s.review_score,
  review_count=s.review_count,updated_at=current_timestamp()
-WHEN NOT MATCHED THEN INSERT VALUES
+WHEN NOT MATCHED THEN INSERT
+ (review_fact_key,review_id,order_id,customer_key,
+  review_creation_date_key,review_answer_date_key,review_score,review_count,
+  created_at,updated_at)
+VALUES
  (s.review_fact_key,s.review_id,s.order_id,s.customer_key,
   s.review_creation_date_key,s.review_answer_date_key,s.review_score,s.review_count,
   current_timestamp(),current_timestamp());
