@@ -165,6 +165,10 @@
                     "DAY": {
                       "value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'dd'),formatDateTime(utcNow(),'dd'))",
                       "type": "Expression"
+                    },
+                    "RunId": {
+                      "value": "@pipeline().RunId",
+                      "type": "Expression"
                     }
                   }
                 }
@@ -239,6 +243,10 @@
                     },
                     "DAY": {
                       "value": "@if(equals(toLower(item().TableName),'orders'),formatDateTime(pipeline().parameters.pBatchStartDate,'dd'),formatDateTime(utcNow(),'dd'))",
+                      "type": "Expression"
+                    },
+                    "RunId": {
+                      "value": "@pipeline().RunId",
                       "type": "Expression"
                     }
                   }

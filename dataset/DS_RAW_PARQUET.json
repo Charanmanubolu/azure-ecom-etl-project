@@ -17,6 +17,9 @@
       },
       "DAY": {
         "type": "string"
+      },
+      "RunId": {
+        "type": "string"
       }
     },
     "annotations": [],
@@ -25,7 +28,7 @@
       "location": {
         "type": "AzureBlobFSLocation",
         "fileName": {
-          "value": "@concat(dataset().EntityName,'.parquet')",
+          "value": "@concat(dataset().EntityName,'_',dataset().RunId,'.parquet')",
           "type": "Expression"
         },
         "folderPath": {
