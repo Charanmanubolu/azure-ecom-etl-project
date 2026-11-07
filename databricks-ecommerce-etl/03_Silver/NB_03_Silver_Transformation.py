@@ -179,10 +179,20 @@ def process_entity(entity):
         if counts["source_rows"] == 0:
             raise ValueError(f"Bronze source is empty: {source_table}")
         df, removed_header_rows = normalize_columns(entity, source)
-        # Bronze ingestion metadata is not part of the existing Silver business schema.
-        bronze_metadata = [c for c in ["_rescued_data", "_source_file_modification_time"] if c in df.columns]
-        if bronze_metadata:
-            df = df.drop(*bronze_metadata)
+        target_table = f"{SILVER_DB}.{entity}"
+        if spark.catalog.tableExists(target_table):
+            target_columns = set(spark.table(target_table).columns)
+            expected_source_columns = target_columns - {"_business_hash"}
+            missing_columns = expected_source_columns - set(df.columns)
+            if missing_columns:
+                raise ValueError(f"{target_table}: source is missing existing target columns: {sorted(missing_columns)}")
+            extra_columns = set(df.columns) - expected_source_columns
+            allowed_metadata = {"_rescued_data", "_source_file_modification_time"}
+            unexpected_columns = extra_columns - allowed_metadata
+            if unexpected_columns:
+                raise ValueError(f"{target_table}: unexpected source columns require review: {sorted(unexpected_columns)}")
+            if extra_columns:
+                df = df.drop(*sorted(extra_columns))
         counts["rejected_rows"] += removed_header_rows
         required = ENTITY_KEYS[entity]
         required_columns = {
@@ -235,7 +245,6 @@ def process_entity(entity):
         staged = (valid.withColumn("_row_num", F.row_number().over(window))
                   .filter(F.col("_row_num") == 1).drop("_row_num"))
         counts["accepted_rows"] = staged.count()
-        target_table = f"{SILVER_DB}.{entity}"
         if spark.catalog.tableExists(target_table):
             target_df = spark.table(target_table)
             if set(target_df.columns) != set(staged.columns):
