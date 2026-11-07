@@ -1,1 +1,16 @@
 -- Databricks notebook source
+-- MAGIC %md
+-- MAGIC # SCD Type 2 — Deferred
+-- MAGIC
+-- MAGIC This notebook is intentionally not implemented.
+-- MAGIC
+-- MAGIC The current project has no confirmed requirement or reliable change-history
+-- MAGIC feed that would justify maintaining effective-dated dimension versions.
+-- MAGIC Reprocessing the available Olist snapshot data does not, by itself, establish
+-- MAGIC a genuine historical tracking requirement.
+-- MAGIC
+-- MAGIC Implement Type 2 only when a business requirement identifies which attributes
+-- MAGIC need history, how changes are detected, and how effective dates/current rows
+-- MAGIC should be managed.
+-- MAGIC
+-- MAGIC See `README.md` in this folder before adding SCD logic.
