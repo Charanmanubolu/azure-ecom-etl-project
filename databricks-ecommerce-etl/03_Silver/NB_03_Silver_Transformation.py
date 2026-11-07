@@ -61,7 +61,8 @@ def ensure_support_tables():
     spark.sql(f"""
       CREATE TABLE IF NOT EXISTS {AUDIT_TABLE} (
         run_id STRING, entity STRING, source_rows BIGINT, accepted_rows BIGINT,
-        rejected_rows BIGINT, target_rows BIGINT, processed_at TIMESTAMP, status STRING
+        rejected_rows BIGINT, inserted_rows BIGINT, updated_rows BIGINT,
+        processed_at TIMESTAMP, status STRING
       ) USING DELTA
     """)
 
@@ -120,16 +121,21 @@ def quarantine(entity, rejected):
 def merge_silver(entity, accepted, keys):
     table_name = SILVER_TABLES[entity]
     if not spark.catalog.tableExists(table_name):
+        inserted = accepted.count()
         accepted.write.format("delta").mode("overwrite").saveAsTable(table_name)
-        return accepted.count()
+        return inserted, 0
     condition = " AND ".join([f"t.{k} = s.{k}" for k in keys])
     values = {c: f"s.{c}" for c in accepted.columns}
+    target_keys = spark.table(table_name).select(*keys)
+    matched = accepted.select(*keys).join(target_keys, keys, "inner").count()
+    inserted = accepted.count() - matched
+    updated = matched
     (DeltaTable.forName(spark, table_name).alias("t")
       .merge(accepted.alias("s"), condition)
       .whenMatchedUpdate(set=values)
       .whenNotMatchedInsert(values=values)
       .execute())
-    return accepted.count()
+    return inserted, updated
 
 def process_entity(entity):
     source_name = f"{UC_CATALOG}.{BRONZE_SCHEMA}.{entity}"
@@ -175,16 +181,17 @@ def process_entity(entity):
         raise ValueError(f"{entity}: duplicate source keys remain after deduplication.")
 
     accepted_rows = accepted.count()
-    target_rows = merge_silver(entity, accepted, keys)
+    inserted_rows, updated_rows = merge_silver(entity, accepted, keys)
     spark.createDataFrame([(
         RUN_ID, entity, int(source_rows), int(accepted_rows), int(rejected_rows),
-        int(target_rows), datetime.now(timezone.utc), "SUCCESS"
+        int(inserted_rows), int(updated_rows), datetime.now(timezone.utc), "SUCCESS"
     )], """
       run_id STRING, entity STRING, source_rows LONG, accepted_rows LONG,
-      rejected_rows LONG, target_rows LONG, processed_at TIMESTAMP, status STRING
+      rejected_rows LONG, inserted_rows LONG, updated_rows LONG,
+      processed_at TIMESTAMP, status STRING
     """).write.format("delta").mode("append").saveAsTable(AUDIT_TABLE)
 
-    return (entity, source_rows, accepted_rows, rejected_rows, target_rows, "SUCCESS")
+    return (entity, source_rows, accepted_rows, rejected_rows, inserted_rows, updated_rows, "SUCCESS")
 
 # COMMAND ----------
 
@@ -199,7 +206,7 @@ for entity in RAW_ENTITIES:
 
 display(spark.createDataFrame(
     results,
-    ["entity","source_rows","accepted_rows","rejected_rows","target_rows_reported","status"]
+    ["entity","source_rows","accepted_rows","rejected_rows","inserted_rows","updated_rows","status"]
 ))
 
 # COMMAND ----------
