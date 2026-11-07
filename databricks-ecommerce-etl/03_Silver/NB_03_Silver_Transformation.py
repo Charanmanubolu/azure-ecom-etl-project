@@ -1,7 +1,12 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %run ../01_Configuration/01_Project_Config
 
 # COMMAND ----------
+
 
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -24,7 +29,7 @@ ENTITY_KEYS = {
     "jsontest": ["_id"],
     "order_items": ["order_id", "order_item_id"],
     "order_payments": ["order_id", "payment_sequential"],
-    "order_reviews": ["review_id"],
+    "order_reviews": ["review_id", "order_id"],
     "orders": ["order_id"],
     "product_category_name_translation": ["product_category_name"],
     "products": ["product_id"],
@@ -267,3 +272,39 @@ display(spark.createDataFrame(results))
 # Review the run-level audit after all entities have been attempted.
 display(spark.table(AUDIT_TABLE).filter(F.col("run_id") == RUN_ID).orderBy("entity"))
 display(spark.table(QUARANTINE_TABLE).filter(F.col("run_id") == RUN_ID).groupBy("entity", "reason").count())
+
+from pyspark.sql import functions as F
+
+# A. Orders source details
+orders = spark.table(
+    f"{UC_CATALOG}.{BRONZE_SCHEMA}.orders"
+)
+
+print("ORDERS SOURCE DETAILS")
+display(
+    orders.groupBy("_source_file", "_ingested_at")
+          .count()
+)
+
+# B. Review duplicate investigation
+reviews = spark.table(
+    f"{UC_CATALOG}.{BRONZE_SCHEMA}.order_reviews"
+)
+
+reviews = reviews.filter(F.col("Prop_0") != "review_id")
+
+print("REVIEW DUPLICATE INVESTIGATION")
+
+duplicate_ids = (
+    reviews.groupBy("Prop_0")
+           .count()
+           .filter(F.col("count") > 1)
+)
+
+print("Duplicate review IDs:", duplicate_ids.count())
+
+display(
+    reviews.join(duplicate_ids.select("Prop_0"), "Prop_0")
+           .orderBy("Prop_0", "_ingested_at")
+           .limit(20)
+)
