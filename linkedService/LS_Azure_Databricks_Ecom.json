@@ -1,0 +1,12 @@
+{
+	"name": "LS_Azure_Databricks_Ecom",
+	"properties": {
+		"annotations": [],
+		"type": "AzureDatabricks",
+		"typeProperties": {
+			"domain": "https://adb-7405605580133608.8.azuredatabricks.net",
+			"authentication": "MSI",
+			"workspaceResourceId": "/subscriptions/01abd38e-51b7-48ff-8557-d14063e7f649/resourceGroups/RG-ECOM-ETL-DEV-CIN/providers/Microsoft.Databricks/workspaces/adb-ecom-dev-01"
+		}
+	}
+}
