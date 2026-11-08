@@ -2005,11 +2005,205 @@
         }
       },
       {
+        "name": "SP_Start_Databricks_Log",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [
+          {
+            "activity": "FE_Process_Jobs",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.00:05:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 15,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "storedProcedureName": "dbo.ecom_start_databricks_log",
+          "storedProcedureParameters": {
+            "master_pipeline_id": {
+              "value": "@pipeline().Pipeline",
+              "type": "String"
+            },
+            "master_run_id": {
+              "value": "@pipeline().RunId",
+              "type": "String"
+            },
+            "child_pipeline_id": {
+              "value": "PL_Databricks_Ecom_ETL",
+              "type": "String"
+            },
+            "job_id": {
+              "value": 259519349550014,
+              "type": "Int"
+            }
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "LS_AzureSQLDB",
+          "type": "LinkedServiceReference"
+        }
+      },
+      {
+        "name": "EXEC_PL_Databricks_Ecom_ETL",
+        "type": "ExecutePipeline",
+        "dependsOn": [
+          {
+            "activity": "SP_Start_Databricks_Log",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "pipeline": {
+            "referenceName": "PL_Databricks_Ecom_ETL",
+            "type": "PipelineReference"
+          },
+          "waitOnCompletion": true
+        }
+      },
+      {
+        "name": "SP_Log_Databricks_Success",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [
+          {
+            "activity": "EXEC_PL_Databricks_Ecom_ETL",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.00:05:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 15,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "storedProcedureName": "dbo.ecom_end_databricks_log",
+          "storedProcedureParameters": {
+            "master_run_id": {
+              "value": "@pipeline().RunId",
+              "type": "String"
+            },
+            "child_pipeline_id": {
+              "value": "PL_Databricks_Ecom_ETL",
+              "type": "String"
+            },
+            "child_pipeline_run_id": {
+              "value": "@activity('EXEC_PL_Databricks_Ecom_ETL').output.pipelineRunId",
+              "type": "String"
+            },
+            "error": {
+              "value": null,
+              "type": "String"
+            },
+            "activity_name": {
+              "value": null,
+              "type": "String"
+            },
+            "error_code": {
+              "value": null,
+              "type": "String"
+            }
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "LS_AzureSQLDB",
+          "type": "LinkedServiceReference"
+        }
+      },
+      {
+        "name": "SP_Log_Databricks_Failure",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [
+          {
+            "activity": "EXEC_PL_Databricks_Ecom_ETL",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.00:05:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 15,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "storedProcedureName": "dbo.ecom_end_databricks_log",
+          "storedProcedureParameters": {
+            "master_run_id": {
+              "value": "@pipeline().RunId",
+              "type": "String"
+            },
+            "child_pipeline_id": {
+              "value": "PL_Databricks_Ecom_ETL",
+              "type": "String"
+            },
+            "child_pipeline_run_id": {
+              "value": "@activity('EXEC_PL_Databricks_Ecom_ETL').output.pipelineRunId",
+              "type": "String"
+            },
+            "error": {
+              "value": "@string(activity('EXEC_PL_Databricks_Ecom_ETL').error.message)",
+              "type": "String"
+            },
+            "activity_name": {
+              "value": "EXEC_PL_Databricks_Ecom_ETL",
+              "type": "String"
+            },
+            "error_code": {
+              "value": "DATABRICKS_JOB_FAILED",
+              "type": "String"
+            }
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "LS_AzureSQLDB",
+          "type": "LinkedServiceReference"
+        }
+      },
+      {
+        "name": "FAIL_Databricks_Execution",
+        "type": "Fail",
+        "dependsOn": [
+          {
+            "activity": "SP_Log_Databricks_Failure",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "userProperties": [],
+        "typeProperties": {
+          "message": {
+            "value": "Databricks ETL job failed. Check dbo.ecom_databricks_job_log.",
+            "type": "Expression"
+          },
+          "errorCode": "DATABRICKS_JOB_FAILED"
+        }
+      },
+      {
         "name": "IF_Test_Failure",
         "type": "IfCondition",
         "dependsOn": [
           {
-            "activity": "FE_Process_Jobs",
+            "activity": "SP_Log_Databricks_Success",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -2097,6 +2291,12 @@
         "dependsOn": [
           {
             "activity": "FE_Process_Jobs",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          },
+          {
+            "activity": "FAIL_Databricks_Execution",
             "dependencyConditions": [
               "Failed"
             ]
