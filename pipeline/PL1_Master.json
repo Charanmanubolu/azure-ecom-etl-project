@@ -2027,11 +2027,17 @@
           "storedProcedureName": "dbo.ecom_start_databricks_log",
           "storedProcedureParameters": {
             "master_pipeline_id": {
-              "value": "@pipeline().Pipeline",
+              "value": {
+                "value": "@pipeline().Pipeline",
+                "type": "Expression"
+              },
               "type": "String"
             },
             "master_run_id": {
-              "value": "@pipeline().RunId",
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
               "type": "String"
             },
             "child_pipeline_id": {
@@ -2095,7 +2101,10 @@
           "storedProcedureName": "dbo.ecom_end_databricks_log",
           "storedProcedureParameters": {
             "master_run_id": {
-              "value": "@pipeline().RunId",
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
               "type": "String"
             },
             "child_pipeline_id": {
@@ -2103,7 +2112,10 @@
               "type": "String"
             },
             "child_pipeline_run_id": {
-              "value": "@activity('EXEC_PL_Databricks_Ecom_ETL').output.pipelineRunId",
+              "value": {
+                "value": "@activity('EXEC_PL_Databricks_Ecom_ETL').output.pipelineRunId",
+                "type": "Expression"
+              },
               "type": "String"
             },
             "error": {
@@ -2148,7 +2160,10 @@
           "storedProcedureName": "dbo.ecom_end_databricks_log",
           "storedProcedureParameters": {
             "master_run_id": {
-              "value": "@pipeline().RunId",
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
               "type": "String"
             },
             "child_pipeline_id": {
@@ -2156,11 +2171,17 @@
               "type": "String"
             },
             "child_pipeline_run_id": {
-              "value": "@activity('EXEC_PL_Databricks_Ecom_ETL').output.pipelineRunId",
+              "value": {
+                "value": "@activity('EXEC_PL_Databricks_Ecom_ETL').output.pipelineRunId",
+                "type": "Expression"
+              },
               "type": "String"
             },
             "error": {
-              "value": "@string(activity('EXEC_PL_Databricks_Ecom_ETL').error.message)",
+              "value": {
+                "value": "@string(activity('EXEC_PL_Databricks_Ecom_ETL').error.message)",
+                "type": "Expression"
+              },
               "type": "String"
             },
             "activity_name": {
