@@ -14,6 +14,9 @@
 					"secureInput": false
 				},
 				"userProperties": [],
+				"typeProperties": {
+					"jobId": 259519349550014
+				},
 				"linkedServiceName": {
 					"referenceName": "LS_Azure_Databricks_Ecom",
 					"type": "LinkedServiceReference"
