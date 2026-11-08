@@ -2199,6 +2199,55 @@
         }
       },
       {
+        "name": "SP_End_Master_Log_Failure_Databricks",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [
+          {
+            "activity": "FAIL_Databricks_Execution",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.00:05:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 15,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "storedProcedureName": "dbo.ecom_end_master_log",
+          "storedProcedureParameters": {
+            "master_pipeline_id": {
+              "value": "@pipeline().Pipeline",
+              "type": "Expression"
+            },
+            "master_run_id": {
+              "value": "@pipeline().RunId",
+              "type": "Expression"
+            },
+            "error": {
+              "value": "@string(activity('EXEC_PL_Databricks_Ecom_ETL').error.message)",
+              "type": "Expression"
+            },
+            "activity_name": {
+              "value": "EXEC_PL_Databricks_Ecom_ETL",
+              "type": "String"
+            },
+            "error_code": {
+              "value": "DATABRICKS_JOB_FAILED",
+              "type": "String"
+            }
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "LS_AzureSQLDB",
+          "type": "LinkedServiceReference"
+        }
+      },
+      {
         "name": "IF_Test_Failure",
         "type": "IfCondition",
         "dependsOn": [
@@ -2291,12 +2340,6 @@
         "dependsOn": [
           {
             "activity": "FE_Process_Jobs",
-            "dependencyConditions": [
-              "Failed"
-            ]
-          },
-          {
-            "activity": "FAIL_Databricks_Execution",
             "dependencyConditions": [
               "Failed"
             ]
