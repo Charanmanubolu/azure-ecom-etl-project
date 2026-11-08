@@ -2242,23 +2242,38 @@
           "storedProcedureName": "dbo.ecom_end_master_log",
           "storedProcedureParameters": {
             "master_pipeline_id": {
-              "value": "@pipeline().Pipeline",
-              "type": "Expression"
+              "value": {
+                "value": "@pipeline().Pipeline",
+                "type": "Expression"
+              },
+              "type": "String"
             },
             "master_run_id": {
-              "value": "@pipeline().RunId",
-              "type": "Expression"
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
+              "type": "String"
             },
             "error": {
-              "value": "@string(activity('EXEC_PL_Databricks_Ecom_ETL').error.message)",
-              "type": "Expression"
+              "value": {
+                "value": "@string(activity('EXEC_PL_Databricks_Ecom_ETL').error.message)",
+                "type": "Expression"
+              },
+              "type": "String"
             },
             "activity_name": {
-              "value": "EXEC_PL_Databricks_Ecom_ETL",
+              "value": {
+                "value": "EXEC_PL_Databricks_Ecom_ETL",
+                "type": "String"
+              },
               "type": "String"
             },
             "error_code": {
-              "value": "DATABRICKS_JOB_FAILED",
+              "value": {
+                "value": "DATABRICKS_JOB_FAILED",
+                "type": "String"
+              },
               "type": "String"
             }
           }
