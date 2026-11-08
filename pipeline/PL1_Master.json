@@ -115,7 +115,7 @@
                   },
                   "pipeline_id": {
                     "value": {
-                      "value": "@if(equals(toUpper(item().SourceType),'SQL'),'PL_SQL_TO_RAW',if(equals(toUpper(item().SourceType),'RESTAPI'),'PL_RESTAPI_TO_RAW',if(equals(toUpper(item().SourceType),'CSV'),'PL_CSV_TO_RAW',if(equals(toUpper(item().SourceType),'EXCEL'),'PL_EXCEL_TO_RAW',if(equals(toUpper(item().SourceType),'BULK'),'PL_BULK_TO_RAW',if(equals(toUpper(item().SourceType),'SFTP'),'PL_SFTP_TO_RAW',if(equals(toUpper(item().SourceType),'JSON'),'PL_JSON_TO_RAW',if(equals(toUpper(item().SourceType),'SNOWFLAKE'),'PL_SNOWFLAKE_METADATA_ORCHESTRATOR','PL_Test_Intentional_Failure'))))))))",
+                      "value": "@if(equals(toUpper(item().SourceType),'SQL'),'PL_SQL_TO_RAW',if(equals(toUpper(item().SourceType),'RESTAPI'),'PL_RESTAPI_TO_RAW',if(equals(toUpper(item().SourceType),'CSV'),'PL_CSV_TO_RAW',if(equals(toUpper(item().SourceType),'EXCEL'),'PL_EXCEL_TO_RAW',if(equals(toUpper(item().SourceType),'BULK'),'PL_BULK_TO_RAW',if(equals(toUpper(item().SourceType),'SFTP'),'PL_SFTP_TO_RAW',if(equals(toUpper(item().SourceType),'JSON'),'PL_JSON_TO_RAW',if(equals(toUpper(item().SourceType),'SNOWFLAKE'),'PL_SNOWFLAKE_METADATA_ORCHESTRATOR',concat('UNMAPPED_',if(empty(item().SourceType),'NULL',string(item().SourceType)))))))))))",
                       "type": "Expression"
                     },
                     "type": "String"
@@ -1933,7 +1933,7 @@
                         },
                         "pipeline_id": {
                           "value": {
-                            "value": "@concat('UNSUPPORTED_',string(item().SourceType))",
+                            "value": "@concat('UNMAPPED_',if(empty(item().SourceType),'NULL',string(item().SourceType)))",
                             "type": "Expression"
                           },
                           "type": "String"

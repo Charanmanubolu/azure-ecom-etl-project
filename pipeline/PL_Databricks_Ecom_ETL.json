@@ -1,0 +1,28 @@
+{
+	"name": "PL_Databricks_Ecom_ETL",
+	"properties": {
+		"activities": [
+			{
+				"name": "JOB_ECOM_MASTER_ETL",
+				"type": "DatabricksJob",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"jobId": 259519349550014
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_Azure_Databricks_Ecom",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"annotations": []
+	}
+}

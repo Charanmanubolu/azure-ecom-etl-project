@@ -159,6 +159,10 @@
                     "DAY": {
                       "value": "@formatDateTime(utcNow(),'dd')",
                       "type": "Expression"
+                    },
+                    "RunId": {
+                      "value": "@pipeline().RunId",
+                      "type": "Expression"
                     }
                   }
                 }
