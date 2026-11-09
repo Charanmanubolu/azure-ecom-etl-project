@@ -317,8 +317,8 @@
                             },
                             "error_code": {
                               "value": {
-                                "value": "CHILD_PIPELINE_FAILED",
-                                "type": "String"
+                                "value": "@string(activity('EXEC_PL_SQL_TO_RAW').error.errorCode)",
+                                "type": "Expression"
                               },
                               "type": "String"
                             },
@@ -515,8 +515,8 @@
                             },
                             "error_code": {
                               "value": {
-                                "value": "CHILD_PIPELINE_FAILED",
-                                "type": "String"
+                                "value": "@string(activity('EXEC_PL_RESTAPI_TO_RAW').error.errorCode)",
+                                "type": "Expression"
                               },
                               "type": "String"
                             },
@@ -709,8 +709,8 @@
                             },
                             "error_code": {
                               "value": {
-                                "value": "CHILD_PIPELINE_FAILED",
-                                "type": "String"
+                                "value": "@string(activity('EXEC_PL_CSV_TO_RAW').error.errorCode)",
+                                "type": "Expression"
                               },
                               "type": "String"
                             },
@@ -903,8 +903,8 @@
                             },
                             "error_code": {
                               "value": {
-                                "value": "CHILD_PIPELINE_FAILED",
-                                "type": "String"
+                                "value": "@string(activity('EXEC_PL_EXCEL_TO_RAW').error.errorCode)",
+                                "type": "Expression"
                               },
                               "type": "String"
                             },
@@ -1097,8 +1097,8 @@
                             },
                             "error_code": {
                               "value": {
-                                "value": "CHILD_PIPELINE_FAILED",
-                                "type": "String"
+                                "value": "@string(activity('EXEC_PL_BULK_TO_RAW').error.errorCode)",
+                                "type": "Expression"
                               },
                               "type": "String"
                             },
@@ -1291,8 +1291,8 @@
                             },
                             "error_code": {
                               "value": {
-                                "value": "CHILD_PIPELINE_FAILED",
-                                "type": "String"
+                                "value": "@string(activity('EXEC_PL_SFTP_TO_RAW').error.errorCode)",
+                                "type": "Expression"
                               },
                               "type": "String"
                             },
@@ -1485,8 +1485,8 @@
                             },
                             "error_code": {
                               "value": {
-                                "value": "CHILD_PIPELINE_FAILED",
-                                "type": "String"
+                                "value": "@string(activity('EXEC_PL_JSON_TO_RAW').error.errorCode)",
+                                "type": "Expression"
                               },
                               "type": "String"
                             },
@@ -1679,8 +1679,8 @@
                             },
                             "error_code": {
                               "value": {
-                                "value": "CHILD_PIPELINE_FAILED",
-                                "type": "String"
+                                "value": "@string(activity('EXEC_PL_SNOWFLAKE_METADATA_ORCHESTRATOR').error.errorCode)",
+                                "type": "Expression"
                               },
                               "type": "String"
                             },
@@ -2001,7 +2001,10 @@
               "type": "String"
             },
             "error_code": {
-              "value": "DATABRICKS_JOB_FAILED",
+              "value": {
+                "value": "@string(activity('EXEC_PL_Databricks_Ecom_ETL').error.errorCode)",
+                "type": "Expression"
+              },
               "type": "String"
             }
           }
@@ -2083,8 +2086,8 @@
             },
             "error_code": {
               "value": {
-                "value": "DATABRICKS_JOB_FAILED",
-                "type": "String"
+                "value": "@string(activity('EXEC_PL_Databricks_Ecom_ETL').error.errorCode)",
+                "type": "Expression"
               },
               "type": "String"
             }
@@ -2198,7 +2201,10 @@
               "type": "String"
             },
             "error_code": {
-              "value": "MASTER_OR_CHILD_PIPELINE_FAILED",
+              "value": {
+                "value": "@string(activity('FE_Process_Jobs').error.errorCode)",
+                "type": "Expression"
+              },
               "type": "String"
             }
           }
@@ -2256,7 +2262,10 @@
               "type": "String"
             },
             "error_code": {
-              "value": "MASTER_METADATA_LOOKUP_FAILED",
+              "value": {
+                "value": "@string(activity('LKUP_Master_Job_Metadata').error.errorCode)",
+                "type": "Expression"
+              },
               "type": "String"
             }
           }
