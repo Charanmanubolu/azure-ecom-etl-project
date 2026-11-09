@@ -2140,7 +2140,7 @@
 								},
 								"job_id": {
 									"value": 259519349550014,
-									"type": "Int"
+									"type": "String"
 								}
 							}
 						},
