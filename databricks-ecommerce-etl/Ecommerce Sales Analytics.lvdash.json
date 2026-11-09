@@ -1,0 +1,1408 @@
+{
+  "datasets": [
+    {
+      "name": "orders",
+      "displayName": "Orders",
+      "config": {
+        "source": "adb_ecom_dev_01.gold.fact_orders",
+        "measures": [
+          {
+            "name": "total_orders",
+            "expr": "COUNT(DISTINCT source.order_id)",
+            "format": {
+              "type": "number",
+              "abbreviation": "compact"
+            }
+          },
+          {
+            "name": "total_customers",
+            "expr": "COUNT(DISTINCT customer.customer_unique_id)",
+            "format": {
+              "type": "number",
+              "abbreviation": "compact"
+            }
+          }
+        ],
+        "version": "1.1",
+        "dimensions": [
+          {
+            "name": "order_date",
+            "expr": "dt.full_date"
+          },
+          {
+            "name": "order_month",
+            "expr": "DATE_TRUNC('MONTH', dt.full_date)"
+          },
+          {
+            "name": "customer_state",
+            "expr": "customer.customer_state"
+          },
+          {
+            "name": "order_status",
+            "expr": "source.order_status"
+          }
+        ],
+        "joins": [
+          {
+            "name": "customer",
+            "source": "adb_ecom_dev_01.gold.dim_customer",
+            "on": "source.customer_key = customer.customer_key"
+          },
+          {
+            "name": "dt",
+            "source": "adb_ecom_dev_01.gold.dim_date",
+            "on": "source.purchase_date_key = dt.date_key"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reviews",
+      "displayName": "Reviews",
+      "config": {
+        "source": "adb_ecom_dev_01.gold.fact_order_reviews",
+        "measures": [
+          {
+            "name": "avg_review_score",
+            "expr": "AVG(source.review_score)",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 2.0
+              }
+            }
+          },
+          {
+            "name": "review_count",
+            "expr": "COUNT(DISTINCT source.review_id)"
+          }
+        ],
+        "version": "1.1",
+        "dimensions": [
+          {
+            "name": "review_date",
+            "expr": "dt.full_date"
+          },
+          {
+            "name": "review_month",
+            "expr": "DATE_TRUNC('MONTH', dt.full_date)"
+          },
+          {
+            "name": "customer_state",
+            "expr": "customer.customer_state"
+          }
+        ],
+        "joins": [
+          {
+            "name": "customer",
+            "source": "adb_ecom_dev_01.gold.dim_customer",
+            "on": "source.customer_key = customer.customer_key"
+          },
+          {
+            "name": "dt",
+            "source": "adb_ecom_dev_01.gold.dim_date",
+            "on": "source.review_creation_date_key = dt.date_key"
+          }
+        ]
+      }
+    },
+    {
+      "name": "order_items",
+      "displayName": "Order Items Sales",
+      "config": {
+        "source": "adb_ecom_dev_01.gold.fact_order_items",
+        "measures": [
+          {
+            "name": "total_revenue",
+            "expr": "SUM(source.item_total)",
+            "format": {
+              "type": "currency",
+              "currencyCode": "BRL",
+              "abbreviation": "compact"
+            }
+          },
+          {
+            "name": "orders",
+            "expr": "COUNT(DISTINCT source.order_id)"
+          },
+          {
+            "name": "items_sold",
+            "expr": "COUNT(1)"
+          },
+          {
+            "name": "avg_order_value",
+            "expr": "SUM(source.item_total) / COUNT(DISTINCT source.order_id)",
+            "format": {
+              "type": "currency",
+              "currencyCode": "BRL"
+            }
+          }
+        ],
+        "version": "1.1",
+        "dimensions": [
+          {
+            "name": "order_date",
+            "expr": "dt.full_date"
+          },
+          {
+            "name": "order_month",
+            "expr": "DATE_TRUNC('MONTH', dt.full_date)"
+          },
+          {
+            "name": "customer_state",
+            "expr": "customer.customer_state"
+          },
+          {
+            "name": "customer_unique_id",
+            "expr": "customer.customer_unique_id"
+          },
+          {
+            "name": "product_category",
+            "expr": "COALESCE(product.product_category_name_english, product.product_category_name, 'Unknown')"
+          },
+          {
+            "name": "product_id",
+            "expr": "product.product_id"
+          },
+          {
+            "name": "seller_id",
+            "expr": "seller.seller_id"
+          },
+          {
+            "name": "seller_state",
+            "expr": "seller.seller_state"
+          }
+        ],
+        "joins": [
+          {
+            "name": "product",
+            "source": "adb_ecom_dev_01.gold.dim_product",
+            "on": "source.product_key = product.product_key"
+          },
+          {
+            "name": "seller",
+            "source": "adb_ecom_dev_01.gold.dim_seller",
+            "on": "source.seller_key = seller.seller_key"
+          },
+          {
+            "name": "customer",
+            "source": "adb_ecom_dev_01.gold.dim_customer",
+            "on": "source.customer_key = customer.customer_key"
+          },
+          {
+            "name": "dt",
+            "source": "adb_ecom_dev_01.gold.dim_date",
+            "on": "source.purchase_date_key = dt.date_key"
+          }
+        ]
+      }
+    },
+    {
+      "name": "payments",
+      "displayName": "Payments",
+      "config": {
+        "source": "adb_ecom_dev_01.gold.fact_order_payments",
+        "measures": [
+          {
+            "name": "payment_value",
+            "expr": "SUM(source.payment_value)",
+            "format": {
+              "type": "currency",
+              "currencyCode": "BRL",
+              "abbreviation": "compact"
+            }
+          },
+          {
+            "name": "payment_orders",
+            "expr": "COUNT(DISTINCT source.order_id)"
+          }
+        ],
+        "version": "1.1",
+        "dimensions": [
+          {
+            "name": "order_date",
+            "expr": "dt.full_date"
+          },
+          {
+            "name": "customer_state",
+            "expr": "customer.customer_state"
+          },
+          {
+            "name": "payment_type",
+            "expr": "source.payment_type"
+          }
+        ],
+        "joins": [
+          {
+            "name": "customer",
+            "source": "adb_ecom_dev_01.gold.dim_customer",
+            "on": "source.customer_key = customer.customer_key"
+          },
+          {
+            "name": "dt",
+            "source": "adb_ecom_dev_01.gold.dim_date",
+            "on": "source.purchase_date_key = dt.date_key"
+          }
+        ]
+      }
+    }
+  ],
+  "pages": [
+    {
+      "name": "d0c2034b",
+      "displayName": "Sales Analytics",
+      "layout": [
+        {
+          "widget": {
+            "name": "f_date",
+            "queries": [
+              {
+                "name": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffab91ef291d91e0c7da4b91f_order_date",
+                "query": {
+                  "datasetName": "orders",
+                  "fields": [
+                    {
+                      "name": "order_date",
+                      "expression": "`order_date`"
+                    },
+                    {
+                      "name": "order_date_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb3f1e58adcd9fdc5885915e_order_date",
+                "query": {
+                  "datasetName": "order_items",
+                  "fields": [
+                    {
+                      "name": "order_date",
+                      "expression": "`order_date`"
+                    },
+                    {
+                      "name": "order_date_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb79190eb648992708915af3_order_date",
+                "query": {
+                  "datasetName": "payments",
+                  "fields": [
+                    {
+                      "name": "order_date",
+                      "expression": "`order_date`"
+                    },
+                    {
+                      "name": "order_date_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb051d37957561488bf7b38c_review_date",
+                "query": {
+                  "datasetName": "reviews",
+                  "fields": [
+                    {
+                      "name": "review_date",
+                      "expression": "`review_date`"
+                    },
+                    {
+                      "name": "review_date_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Order Date"
+              },
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "order_date",
+                    "queryName": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffab91ef291d91e0c7da4b91f_order_date"
+                  },
+                  {
+                    "fieldName": "order_date",
+                    "queryName": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb3f1e58adcd9fdc5885915e_order_date"
+                  },
+                  {
+                    "fieldName": "order_date",
+                    "queryName": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb79190eb648992708915af3_order_date"
+                  },
+                  {
+                    "fieldName": "review_date",
+                    "queryName": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb051d37957561488bf7b38c_review_date"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "f_state",
+            "queries": [
+              {
+                "name": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffab91ef291d91e0c7da4b91f_customer_state",
+                "query": {
+                  "datasetName": "orders",
+                  "fields": [
+                    {
+                      "name": "customer_state",
+                      "expression": "`customer_state`"
+                    },
+                    {
+                      "name": "customer_state_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb3f1e58adcd9fdc5885915e_customer_state",
+                "query": {
+                  "datasetName": "order_items",
+                  "fields": [
+                    {
+                      "name": "customer_state",
+                      "expression": "`customer_state`"
+                    },
+                    {
+                      "name": "customer_state_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb79190eb648992708915af3_customer_state",
+                "query": {
+                  "datasetName": "payments",
+                  "fields": [
+                    {
+                      "name": "customer_state",
+                      "expression": "`customer_state`"
+                    },
+                    {
+                      "name": "customer_state_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb051d37957561488bf7b38c_customer_state",
+                "query": {
+                  "datasetName": "reviews",
+                  "fields": [
+                    {
+                      "name": "customer_state",
+                      "expression": "`customer_state`"
+                    },
+                    {
+                      "name": "customer_state_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Customer State"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "customer_state",
+                    "queryName": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffab91ef291d91e0c7da4b91f_customer_state"
+                  },
+                  {
+                    "fieldName": "customer_state",
+                    "queryName": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb3f1e58adcd9fdc5885915e_customer_state"
+                  },
+                  {
+                    "fieldName": "customer_state",
+                    "queryName": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb79190eb648992708915af3_customer_state"
+                  },
+                  {
+                    "fieldName": "customer_state",
+                    "queryName": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb051d37957561488bf7b38c_customer_state"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "f_cat",
+            "queries": [
+              {
+                "name": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb3f1e58adcd9fdc5885915e_product_category",
+                "query": {
+                  "datasetName": "order_items",
+                  "fields": [
+                    {
+                      "name": "product_category",
+                      "expression": "`product_category`"
+                    },
+                    {
+                      "name": "product_category_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Product Category"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "product_category",
+                    "queryName": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb3f1e58adcd9fdc5885915e_product_category"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "f_pay",
+            "queries": [
+              {
+                "name": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb79190eb648992708915af3_payment_type",
+                "query": {
+                  "datasetName": "payments",
+                  "fields": [
+                    {
+                      "name": "payment_type",
+                      "expression": "`payment_type`"
+                    },
+                    {
+                      "name": "payment_type_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Payment Type"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "payment_type",
+                    "queryName": "dashboards/01f1dbef90b91df3bde5e3a6f72a5d06/datasets/01f1dbeffb79190eb648992708915af3_payment_type"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "k_orders",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "orders",
+                  "fields": [
+                    {
+                      "name": "measure(total_orders)",
+                      "expression": "MEASURE(`total_orders`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Orders"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(total_orders)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "k_revenue",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_items",
+                  "fields": [
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Revenue"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(total_revenue)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "k_customers",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "orders",
+                  "fields": [
+                    {
+                      "name": "measure(total_customers)",
+                      "expression": "MEASURE(`total_customers`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Customers"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(total_customers)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "k_aov",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_items",
+                  "fields": [
+                    {
+                      "name": "measure(avg_order_value)",
+                      "expression": "MEASURE(`avg_order_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Average Order Value"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_order_value)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 2,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "k_review",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "reviews",
+                  "fields": [
+                    {
+                      "name": "measure(avg_review_score)",
+                      "expression": "MEASURE(`avg_review_score`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Average Review Score"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_review_score)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 10,
+            "y": 2,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "c_rev_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_items",
+                  "fields": [
+                    {
+                      "name": "order_month",
+                      "expression": "`order_month`"
+                    },
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Monthly Revenue Trend"
+              },
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "order_month",
+                  "displayName": "Month",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_revenue)",
+                  "displayName": "Revenue",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "c_ord_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "orders",
+                  "fields": [
+                    {
+                      "name": "order_month",
+                      "expression": "`order_month`"
+                    },
+                    {
+                      "name": "measure(total_orders)",
+                      "expression": "MEASURE(`total_orders`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Monthly Orders Trend"
+              },
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "order_month",
+                  "displayName": "Month",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_orders)",
+                  "displayName": "Orders",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 5,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "c_rev_cat",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_items",
+                  "fields": [
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    },
+                    {
+                      "name": "product_category",
+                      "expression": "`product_category`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Revenue by Product Category"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "measure(total_revenue)",
+                  "displayName": "Revenue",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "product_category",
+                  "displayName": "Category",
+                  "scale": {
+                    "type": "categorical",
+                    "categorySize": {
+                      "type": "number-of-categories",
+                      "number": 15
+                    },
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "c_top_products",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_items",
+                  "fields": [
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    },
+                    {
+                      "name": "product_id",
+                      "expression": "`product_id`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Top 10 Products by Revenue"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "measure(total_revenue)",
+                  "displayName": "Revenue",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "product_id",
+                  "displayName": "Product ID",
+                  "scale": {
+                    "type": "categorical",
+                    "categorySize": {
+                      "type": "number-of-categories",
+                      "number": 10
+                    },
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 11,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "c_state",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "orders",
+                  "fields": [
+                    {
+                      "name": "customer_state",
+                      "expression": "`customer_state`"
+                    },
+                    {
+                      "name": "measure(total_orders)",
+                      "expression": "MEASURE(`total_orders`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Orders by Customer State"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "customer_state",
+                  "displayName": "State",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_orders)",
+                  "displayName": "Orders",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "c_top_customers",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_items",
+                  "fields": [
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    },
+                    {
+                      "name": "customer_unique_id",
+                      "expression": "`customer_unique_id`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Top 10 Customers by Order Value"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "measure(total_revenue)",
+                  "displayName": "Order Value",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "customer_unique_id",
+                  "displayName": "Customer",
+                  "scale": {
+                    "type": "categorical",
+                    "categorySize": {
+                      "type": "number-of-categories",
+                      "number": 10
+                    },
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 18,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "c_top_sellers",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_items",
+                  "fields": [
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    },
+                    {
+                      "name": "seller_id",
+                      "expression": "`seller_id`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Top 10 Sellers by Sales"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "measure(total_revenue)",
+                  "displayName": "Sales",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "seller_id",
+                  "displayName": "Seller ID",
+                  "scale": {
+                    "type": "categorical",
+                    "categorySize": {
+                      "type": "number-of-categories",
+                      "number": 10
+                    },
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 25,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "t_cat_perf",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_items",
+                  "fields": [
+                    {
+                      "name": "product_category",
+                      "expression": "`product_category`"
+                    },
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    },
+                    {
+                      "name": "measure(orders)",
+                      "expression": "MEASURE(`orders`)"
+                    },
+                    {
+                      "name": "measure(items_sold)",
+                      "expression": "MEASURE(`items_sold`)"
+                    },
+                    {
+                      "name": "measure(avg_order_value)",
+                      "expression": "MEASURE(`avg_order_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Product Category Performance"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "product_category",
+                    "displayName": "Category"
+                  },
+                  {
+                    "fieldName": "measure(total_revenue)",
+                    "displayName": "Revenue"
+                  },
+                  {
+                    "fieldName": "measure(orders)",
+                    "displayName": "Orders"
+                  },
+                  {
+                    "fieldName": "measure(items_sold)",
+                    "displayName": "Items Sold"
+                  },
+                  {
+                    "fieldName": "measure(avg_order_value)",
+                    "displayName": "Avg Order Value"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 25,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "c_pay",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "payments",
+                  "fields": [
+                    {
+                      "name": "measure(payment_value)",
+                      "expression": "MEASURE(`payment_value`)"
+                    },
+                    {
+                      "name": "payment_type",
+                      "expression": "`payment_type`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Payment Method Distribution"
+              },
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(payment_value)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Payment Value"
+                },
+                "color": {
+                  "fieldName": "payment_type",
+                  "displayName": "Payment Type",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 32,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "c_review_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "reviews",
+                  "fields": [
+                    {
+                      "name": "review_month",
+                      "expression": "`review_month`"
+                    },
+                    {
+                      "name": "measure(avg_review_score)",
+                      "expression": "MEASURE(`avg_review_score`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Average Review Score Over Time"
+              },
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "review_month",
+                  "displayName": "Month",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(avg_review_score)",
+                  "displayName": "Avg Review Score",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 32,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
