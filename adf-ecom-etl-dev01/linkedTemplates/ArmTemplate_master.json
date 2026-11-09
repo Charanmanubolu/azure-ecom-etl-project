@@ -151,21 +151,6 @@
 					},
 					"LS_AzureSQLDB_properties_typeProperties_userName": {
 						"value": "[parameters('LS_AzureSQLDB_properties_typeProperties_userName')]"
-					},
-					"LS_SNOWFLAKE_properties_typeProperties_database": {
-						"value": "[parameters('LS_SNOWFLAKE_properties_typeProperties_database')]"
-					},
-					"LS_SNOWFLAKE_properties_typeProperties_role": {
-						"value": "[parameters('LS_SNOWFLAKE_properties_typeProperties_role')]"
-					},
-					"LS_SQLSERVER_LOCAL_properties_typeProperties_server": {
-						"value": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_server')]"
-					},
-					"LS_SQLSERVER_LOCAL_properties_typeProperties_database": {
-						"value": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_database')]"
-					},
-					"LS_SQLSERVER_LOCAL_properties_typeProperties_userName": {
-						"value": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_userName')]"
 					}
 				}
 			},
@@ -184,6 +169,21 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
+					},
+					"LS_SNOWFLAKE_properties_typeProperties_database": {
+						"value": "[parameters('LS_SNOWFLAKE_properties_typeProperties_database')]"
+					},
+					"LS_SNOWFLAKE_properties_typeProperties_role": {
+						"value": "[parameters('LS_SNOWFLAKE_properties_typeProperties_role')]"
+					},
+					"LS_SQLSERVER_LOCAL_properties_typeProperties_server": {
+						"value": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_server')]"
+					},
+					"LS_SQLSERVER_LOCAL_properties_typeProperties_database": {
+						"value": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_database')]"
+					},
+					"LS_SQLSERVER_LOCAL_properties_typeProperties_userName": {
+						"value": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_userName')]"
 					}
 				}
 			},

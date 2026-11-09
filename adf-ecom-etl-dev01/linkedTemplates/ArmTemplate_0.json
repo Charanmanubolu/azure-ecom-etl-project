@@ -62,26 +62,6 @@
 		"LS_AzureSQLDB_properties_typeProperties_userName": {
 			"type": "string",
 			"defaultValue": "sql-srvr-ecom-dev01"
-		},
-		"LS_SNOWFLAKE_properties_typeProperties_database": {
-			"type": "string",
-			"defaultValue": "DBAZURESNOW"
-		},
-		"LS_SNOWFLAKE_properties_typeProperties_role": {
-			"type": "string",
-			"defaultValue": "ACCOUNTADMIN"
-		},
-		"LS_SQLSERVER_LOCAL_properties_typeProperties_server": {
-			"type": "string",
-			"defaultValue": "DESKTOP-DEVAR3N"
-		},
-		"LS_SQLSERVER_LOCAL_properties_typeProperties_database": {
-			"type": "string",
-			"defaultValue": "ECommerceDB"
-		},
-		"LS_SQLSERVER_LOCAL_properties_typeProperties_userName": {
-			"type": "string",
-			"defaultValue": "Charan_ADF"
 		}
 	},
 	"variables": {
@@ -100,8 +80,11 @@
 						"dependsOn": [],
 						"userProperties": [],
 						"typeProperties": {
-							"message": "TEST_FAILURE",
-							"errorCode": "Intentional failure for testing"
+							"message": {
+								"value": "Intentional failure for testing",
+								"type": "Expression"
+							},
+							"errorCode": "TEST_FAILURE"
 						}
 					}
 				],
@@ -181,6 +164,21 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/LS_Azure_Databricks_Ecom')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-7405605580133608.8.azuredatabricks.net",
+					"authentication": "MSI",
+					"workspaceResourceId": "/subscriptions/01abd38e-51b7-48ff-8557-d14063e7f649/resourceGroups/RG-ECOM-ETL-DEV-CIN/providers/Microsoft.Databricks/workspaces/adb-ecom-dev-01"
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/LS_BLOB')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -230,6 +228,42 @@
 				"typeProperties": {}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Databricks_Ecom_ETL')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "JOB_ECOM_MASTER_ETL",
+						"type": "DatabricksJob",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"jobId": 259519349550014
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_Azure_Databricks_Ecom",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_Azure_Databricks_Ecom')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/DS_BLOB_FOLDER')]",
@@ -532,6 +566,9 @@
 					},
 					"DAY": {
 						"type": "string"
+					},
+					"RunId": {
+						"type": "string"
 					}
 				},
 				"annotations": [],
@@ -540,7 +577,7 @@
 					"location": {
 						"type": "AzureBlobFSLocation",
 						"fileName": {
-							"value": "@concat(dataset().EntityName,'.parquet')",
+							"value": "@concat(dataset().EntityName,'_',dataset().RunId,'.parquet')",
 							"type": "Expression"
 						},
 						"folderPath": {
@@ -649,74 +686,6 @@
 				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_KEYVAULT')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/LS_SNOWFLAKE')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "SnowflakeV2",
-				"typeProperties": {
-					"authenticationType": "Basic",
-					"accountIdentifier": "OSUVDIY-VU37943",
-					"user": "CharanManubolu",
-					"database": "[parameters('LS_SNOWFLAKE_properties_typeProperties_database')]",
-					"warehouse": "ECOM_WH",
-					"role": "[parameters('LS_SNOWFLAKE_properties_typeProperties_role')]",
-					"password": {
-						"type": "AzureKeyVaultSecret",
-						"store": {
-							"referenceName": "LS_KEYVAULT",
-							"type": "LinkedServiceReference"
-						},
-						"secretName": "SnowFlake",
-						"secretVersion": "fdf080c9bf694c47bb9346ef0e0c240f"
-					},
-					"useUtcTimestamps": false
-				},
-				"version": "1.1"
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_KEYVAULT')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/LS_SQLSERVER_LOCAL')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "SqlServer",
-				"typeProperties": {
-					"server": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_server')]",
-					"database": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_database')]",
-					"encrypt": "mandatory",
-					"trustServerCertificate": true,
-					"authenticationType": "SQL",
-					"userName": "[parameters('LS_SQLSERVER_LOCAL_properties_typeProperties_userName')]",
-					"password": {
-						"type": "AzureKeyVaultSecret",
-						"store": {
-							"referenceName": "LS_KEYVAULT",
-							"type": "LinkedServiceReference"
-						},
-						"secretName": "sqlServeLocalPassword",
-						"secretVersion": "440cea9108d849d3bd29428985bc7b3a"
-					},
-					"alwaysEncryptedSettings": {
-						"alwaysEncryptedAkvAuthType": "ManagedIdentity"
-					}
-				},
-				"connectVia": {
-					"referenceName": "SelfhostedIntegrationRunTime",
-					"type": "IntegrationRuntimeReference"
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/integrationRuntimes/SelfhostedIntegrationRunTime')]",
 				"[concat(variables('factoryId'), '/linkedServices/LS_KEYVAULT')]"
 			]
 		}
